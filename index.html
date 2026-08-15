@@ -1,0 +1,2399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SunSync 360 — Vis-O-Matic</title>
+<meta name="description" content="Solar geometry and azimuth registration for 360° outdoor imagery. Computes sun position from EXIF, solves camera heading from the sun or the terrain, and exports scattering-angle geometry. Nothing is uploaded.">
+<link rel="canonical" href="https://www.jonathancinnamon.com/sunsync-360/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jonathancinnamon.com/sunsync-360/">
+<meta property="og:title" content="SunSync 360 — Vis-O-Matic">
+<meta property="og:description" content="Register 360° outdoor imagery to true north using the sun. Solar geometry, scattering angles and dataset matching, entirely in the browser.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vom-display:'Courier New',ui-monospace,monospace;
+  --vom-bar:#16323f;
+  --vom-tool:#2c5f7a;
+  --primary:#2c5f7a; --primary-dark:#1e4358;
+  --accent:#1a9080; --accent-hover:#168070; --accent-light:#e6f4f1;
+  --border:#dde8ed; --bg-page:#f0f4f7; --bg-white:#fff;
+  --text:#1a2332; --text-muted:#6b7a8d;
+  --danger:#c0392b; --danger-bg:#fef0ef;
+  --warning-bg:#fff8e6; --warning-border:#f0a500;
+  --success-bg:#e6f4f1;
+  --sun:#e8a33d; --sun-dark:#b8761d;
+  --radius:6px;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--bg-page);color:var(--text);font-size:14px;line-height:1.5}
+.vom-bar{background:var(--vom-bar);color:#fff;display:flex;align-items:center;gap:1.25rem;padding:.5rem 1.5rem;flex-wrap:wrap}
+.vom-wordmark{font-family:var(--vom-display);font-size:1.34rem;line-height:1;color:#fff;text-decoration:none;white-space:nowrap}
+.vom-wordmark:hover{opacity:.85}
+.vom-tagline{font-size:.78rem;opacity:.62}
+.vom-nav{display:flex;gap:.2rem;margin-left:auto;align-items:center;flex-wrap:wrap}
+.vom-nav a{font-family:var(--vom-display);font-size:.98rem;color:rgba(255,255,255,.72);text-decoration:none;padding:.24rem .66rem;border-radius:6px;white-space:nowrap}
+.vom-nav a:hover{background:rgba(255,255,255,.13);color:#fff}
+.vom-nav a.current{background:rgba(255,255,255,.2);color:#fff}
+.vom-nav .vom-div{width:1px;height:17px;background:rgba(255,255,255,.25);margin:0 .35rem}
+.vom-nav a.vom-ext{font-family:var(--font);font-size:.78rem;color:rgba(255,255,255,.58)}
+.vom-toolbar{background:var(--vom-tool);color:#fff;padding:.72rem 1.5rem .82rem;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.vom-toolbar h1{font-family:var(--vom-display);font-size:1.42rem;font-weight:400;margin:0;line-height:1.2}
+.vom-toolbar p{font-size:.84rem;opacity:.8;margin:3px 0 0}
+
+.page-body{max-width:1500px;margin:0 auto;padding:1.1rem 1.5rem 4rem}
+.tabs{display:flex;gap:.25rem;border-bottom:2px solid var(--border);margin-bottom:1.1rem;flex-wrap:wrap}
+.tab{padding:.5rem 1.05rem;border:none;background:none;font-family:var(--font);font-size:.92rem;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab:hover{color:var(--primary)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab .tabnum{display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;background:var(--border);color:var(--text-muted);font-size:.7rem;margin-right:.4rem}
+.tab.active .tabnum{background:var(--primary);color:#fff}
+.panel{display:none} .panel.active{display:block}
+
+.card{background:var(--bg-white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.15rem;margin-bottom:1rem}
+.card h2{font-size:1.02rem;margin:0 0 .2rem;color:var(--primary-dark)}
+.card h3{font-size:.9rem;margin:1rem 0 .45rem;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.04em}
+.card h3:first-child{margin-top:0}
+.card .sub{font-size:.82rem;color:var(--text-muted);margin:0 0 .8rem}
+.row{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:.22rem;min-width:130px}
+.fld label{font-size:.76rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em}
+.fld .hint{font-size:.72rem;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{padding:.42rem .55rem;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:.86rem;background:#fff;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-light);border-color:var(--accent)}
+input[type=range]{accent-color:var(--accent)}
+.btn{padding:.45rem .95rem;border:none;border-radius:var(--radius);font-family:var(--font);font-size:.86rem;font-weight:500;cursor:pointer;background:var(--accent);color:#fff}
+.btn:hover:not(:disabled){background:var(--accent-hover)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-outline{background:none;color:var(--primary);border:1px solid var(--border)}
+.btn-outline:hover:not(:disabled){background:var(--bg-page);border-color:var(--primary)}
+.btn-sm{padding:.28rem .62rem;font-size:.78rem}
+.btn-primary{background:var(--primary)} .btn-primary:hover:not(:disabled){background:var(--primary-dark)}
+.chk{display:flex;align-items:center;gap:.4rem;font-size:.85rem}
+.chk input{accent-color:var(--accent)}
+
+.note{padding:.6rem .8rem;border-radius:var(--radius);font-size:.83rem;margin:.6rem 0}
+.note-info{background:var(--accent-light);border-left:3px solid var(--accent)}
+.note-warn{background:var(--warning-bg);border-left:3px solid var(--warning-border)}
+.note-err{background:var(--danger-bg);border-left:3px solid var(--danger)}
+.note-ok{background:var(--success-bg);border-left:3px solid var(--accent)}
+
+table{border-collapse:collapse;width:100%;font-size:.8rem}
+th,td{padding:.32rem .5rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{background:var(--bg-page);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);position:sticky;top:0;z-index:2}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl-wrap{max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+tr.gated td{background:#fdf6f5;color:#8a5a55}
+tr.sel td{background:var(--accent-light)}
+tr.clickable{cursor:pointer}
+
+.pill{display:inline-block;padding:.08rem .42rem;border-radius:99px;font-size:.7rem;font-weight:600;letter-spacing:.02em}
+.pill-sun{background:#fdf0d9;color:var(--sun-dark)}
+.pill-terrain{background:#e3eef4;color:var(--primary-dark)}
+.pill-manual{background:#eee7f5;color:#5b3f7a}
+.pill-consensus{background:var(--success-bg);color:#0f6b5e}
+.pill-fail{background:var(--danger-bg);color:var(--danger)}
+.pill-gated{background:#f2f4f6;color:var(--text-muted)}
+
+.stat-row{display:flex;gap:.9rem;flex-wrap:wrap;margin:.7rem 0}
+.stat{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius);padding:.5rem .8rem;min-width:110px}
+.stat .k{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);font-weight:600}
+.stat .v{font-size:1.12rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--primary-dark)}
+.stat .u{font-size:.72rem;color:var(--text-muted);font-weight:400}
+
+.drop{border:2px dashed var(--border);border-radius:var(--radius);padding:1.6rem;text-align:center;background:var(--bg-white);cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-light)}
+.drop .big{font-size:1rem;font-weight:600;color:var(--primary-dark)}
+.drop .small{font-size:.8rem;color:var(--text-muted);margin-top:.25rem}
+
+.viewer-wrap{display:grid;grid-template-columns:180px 1fr;gap:.9rem}
+@media(max-width:900px){.viewer-wrap{grid-template-columns:1fr}}
+.filmstrip{max-height:560px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+.fs-item{padding:.32rem .5rem;border-bottom:1px solid var(--border);cursor:pointer;font-size:.74rem;display:flex;align-items:center;gap:.4rem}
+.fs-item:hover{background:var(--bg-page)}
+.fs-item.active{background:var(--accent-light)}
+.fs-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.fs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+canvas{display:block;max-width:100%}
+.canvas-box{position:relative;border:1px solid var(--border);border-radius:var(--radius);background:#0d1519;overflow:hidden}
+.canvas-box canvas{width:100%;height:auto}
+.legend{display:flex;gap:.9rem;flex-wrap:wrap;font-size:.76rem;color:var(--text-muted);margin-top:.45rem}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:.28rem;vertical-align:-1px}
+
+.trace-box{border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:.5rem;margin-top:.7rem}
+#status{padding:.5rem .8rem;border-radius:var(--radius);font-size:.84rem;margin:.6rem 0;display:none}
+#status.show{display:block}
+#status.progress{background:var(--accent-light)}
+#status.success{background:var(--success-bg)}
+#status.error{background:var(--danger-bg);color:var(--danger)}
+.prog{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:.4rem}
+.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .12s}
+details{border:1px solid var(--border);border-radius:var(--radius);background:#fff;margin-bottom:.9rem}
+details>summary{padding:.55rem .85rem;cursor:pointer;font-weight:600;font-size:.88rem;color:var(--primary-dark);list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:'▸';display:inline-block;margin-right:.45rem;transition:transform .15s}
+details[open]>summary::before{transform:rotate(90deg)}
+details .body{padding:0 .85rem .85rem;font-size:.85rem}
+code{background:var(--bg-page);padding:.08rem .3rem;border-radius:3px;font-size:.82em}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.split{display:grid;grid-template-columns:1fr 320px;gap:1rem}
+@media(max-width:1100px){.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="vom-bar">
+  <a class="vom-wordmark" href="https://www.jonathancinnamon.com/vis-o-matic/" title="Vis-O-Matic">Vis-O-Matic</a>
+  <span class="vom-tagline">free tools for image analysis</span>
+  <nav class="vom-nav">
+    <a href="https://www.jonathancinnamon.com/image-cutter/">Cutter</a>
+    <a href="https://www.jonathancinnamon.com/image-colour-analyzer/">Analyzer</a>
+    <a href="https://www.jonathancinnamon.com/image-colour-visualizer/">Visualizer</a>
+    <a href="#" class="current">SunSync&nbsp;360</a>
+    <span class="vom-div"></span>
+    <a class="vom-ext" href="https://www.jonathancinnamon.com">jonathancinnamon.com</a>
+  </nav>
+</div>
+<div class="vom-toolbar">
+  <h1>SunSync 360</h1>
+  <p>Solar geometry and true-north registration for 360° outdoor imagery. Everything runs locally in your browser.</p>
+</div>
+
+<div class="page-body">
+
+<details id="introBox" open>
+  <summary>What this does, and how to use it</summary>
+  <div class="body">
+    <p>An equirectangular 360° frame has a horizontal axis that <em>looks</em> like a compass but usually isn't one: almost no consumer 360 camera writes its heading into the file. SunSync 360 recovers that heading by finding the sun in the frame and comparing it with where the sun astronomically <em>had</em> to be, given the GPS position and timestamp already in the EXIF.</p>
+    <p><strong>The check that makes it trustworthy:</strong> solar <em>elevation</em> does not depend on heading at all. So the gap between the sun's measured elevation in the frame and its computed elevation is a free, independent confidence score for every frame. Small residual → the detection found the sun. Large residual → it found a bright cloud, and the frame is gated out rather than silently mis-registered.</p>
+    <p><strong>Second opinion:</strong> where the sun can't be trusted or isn't visible, the tool cross-correlates the static terrain band below the horizon between frames. That gives a <em>relative</em> heading, which one sun-anchored frame converts to absolute.</p>
+    <ol style="margin:.5rem 0 0;padding-left:1.1rem">
+      <li><strong>Load</strong> — drop in a folder of 360° images. EXIF, GPS and projection are read automatically; anything missing can be typed in.</li>
+      <li><strong>Geometry</strong> — check the timezone and clock, review computed sun positions and air mass.</li>
+      <li><strong>Register</strong> — run detection, inspect the yaw-versus-time trace, accept a consensus or keep per-frame headings.</li>
+      <li><strong>Viewer</strong> — see the sun markers, true-north ticks and scattering-angle contours drawn on the imagery.</li>
+      <li><strong>Analyse</strong> — scattering-angle annuli, phase curves, and solar-window matching across datasets.</li>
+      <li><strong>Export</strong> — a geometry sidecar CSV for the Batch Image Analyzer, and optionally rotated images.</li>
+    </ol>
+    <p style="margin-bottom:0"><strong>Nothing leaves your machine.</strong> Files are read in the browser; no upload, no server.</p>
+  </div>
+</details>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-p="load"><span class="tabnum">1</span>Load</button>
+  <button class="tab" data-p="geom"><span class="tabnum">2</span>Geometry</button>
+  <button class="tab" data-p="reg"><span class="tabnum">3</span>Register</button>
+  <button class="tab" data-p="view"><span class="tabnum">4</span>Viewer</button>
+  <button class="tab" data-p="anal"><span class="tabnum">5</span>Analyse</button>
+  <button class="tab" data-p="match"><span class="tabnum">6</span>Match</button>
+  <button class="tab" data-p="exp"><span class="tabnum">7</span>Export</button>
+</div>
+
+<div id="status"><span id="statusText"></span><div class="prog" id="progWrap" style="display:none"><i id="progBar"></i></div></div>
+
+<!-- ══════════════ 1. LOAD ══════════════ -->
+<div class="panel active" id="p-load">
+  <div class="card">
+    <h2>Load 360° imagery</h2>
+    <p class="sub">Equirectangular (2:1) frames are the primary case. Partial/cropped equirectangular strips and fisheye frames are supported if you declare their geometry below.</p>
+    <div class="drop" id="dropZone">
+      <div class="big">Drop images or a folder here</div>
+      <div class="small">or click to choose &nbsp;·&nbsp; JPEG / PNG / WebP &nbsp;·&nbsp; nothing is uploaded</div>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+      <input type="file" id="dirInput" webkitdirectory directory multiple style="display:none">
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('fileInput').click()">Choose files…</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('dirInput').click()">Choose folder…</button>
+      <button class="btn btn-outline btn-sm" onclick="clearAll()">Clear all</button>
+    </div>
+    <div id="loadSummary"></div>
+  </div>
+
+  <div class="card" id="geomDeclCard">
+    <h2>Frame geometry</h2>
+    <p class="sub">Detected from GPano XMP and aspect ratio where possible. Override if your frames are cropped or non-standard.</p>
+    <div class="row">
+      <div class="fld"><label>Projection</label>
+        <select id="projSel">
+          <option value="equirect">Equirectangular</option>
+          <option value="fisheye_equidist">Fisheye — equidistant</option>
+          <option value="fisheye_equisolid">Fisheye — equisolid</option>
+          <option value="stereographic">Stereographic</option>
+        </select></div>
+      <div class="fld"><label>Elevation at top row</label><input type="number" id="elevTop" value="90" step="0.5"><span class="hint">degrees, +90 = zenith</span></div>
+      <div class="fld"><label>Elevation at bottom row</label><input type="number" id="elevBot" value="-90" step="0.5"><span class="hint">−90 = nadir</span></div>
+      <div class="fld"><label>Horizontal span</label><input type="number" id="azSpan" value="360" step="1"><span class="hint">degrees covered left→right</span></div>
+      <div class="fld"><label>Transparent pixels</label>
+        <select id="alphaSel"><option value="mask">Treat as masked (skip)</option><option value="opaque">Treat as opaque</option></select></div>
+      <button class="btn btn-outline btn-sm" onclick="applyGeomDecl()">Apply to all frames</button>
+    </div>
+    <div id="geomDeclNote"></div>
+  </div>
+
+  <div class="card" id="missingCard" style="display:none">
+    <h2>Missing position or time</h2>
+    <p class="sub">Some frames have no GPS or no timestamp. Supply them here — the values apply to every frame that is missing them.</p>
+    <div class="row">
+      <div class="fld"><label>Latitude</label><input type="number" id="manLat" step="0.000001" placeholder="49.8880"></div>
+      <div class="fld"><label>Longitude</label><input type="number" id="manLon" step="0.000001" placeholder="-119.4960"></div>
+      <div class="fld"><label>First frame local time</label><input type="datetime-local" id="manTime" step="1"></div>
+      <div class="fld"><label>Interval between frames</label><input type="number" id="manInt" value="0" step="0.1"><span class="hint">seconds, 0 = all same time</span></div>
+      <button class="btn btn-outline btn-sm" onclick="applyManualMeta()">Fill in the gaps</button>
+    </div>
+  </div>
+
+  <details>
+    <summary>Import from Mapillary (for imagery with no EXIF)</summary>
+    <div class="body">
+      <p>Mapillary stores the heading, position and capture time it computed for every uploaded image. If your local copies have lost their metadata — cropped exports, screenshots, re-saved PNGs — pull the originals back instead of guessing.</p>
+      <p>You need a free access token from <span class="mono">mapillary.com</span> → Dashboard → Developers → register an application. The token stays in this page and is sent only to Mapillary's own API.</p>
+      <div class="row">
+        <div class="fld" style="min-width:280px"><label>Access token</label><input type="text" id="mlyToken" placeholder="MLY|..."></div>
+        <div class="fld" style="min-width:240px"><label>Sequence ID, or image IDs (comma separated)</label><input type="text" id="mlyIds" placeholder="sequence id or 123456789,987654321"></div>
+      </div>
+      <div class="row" style="margin-top:.5rem">
+        <div class="fld"><label>Image size</label><select id="mlySize"><option value="thumb_2048_url">2048 px</option><option value="thumb_1024_url">1024 px</option><option value="thumb_original_url">original</option></select></div>
+        <div class="chk"><input type="checkbox" id="mlyUseHeading" checked><label for="mlyUseHeading">Use Mapillary's computed compass angle as the heading</label></div>
+        <button class="btn btn-outline btn-sm" onclick="mapillaryImport()">Fetch</button>
+      </div>
+      <div id="mlyNote"></div>
+      <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:0">Mapillary's <span class="mono">computed_compass_angle</span> comes from its own structure-from-motion pass. It is usually good but it is not ground truth — SunSync will still solve from the sun where it can and will report both, so you can see whether they agree.</p>
+    </div>
+  </details>
+
+  <div class="card" id="loadTblCard" style="display:none">
+    <h2>Frames loaded</h2>
+    <div class="tbl-wrap"><table id="loadTbl"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- ══════════════ 2. GEOMETRY ══════════════ -->
+<div class="panel" id="p-geom">
+  <div class="card">
+    <h2>Time and place</h2>
+    <p class="sub">The sun's computed position is only as good as the clock and the timezone. Neither is recorded reliably by most 360 cameras.</p>
+    <div class="row">
+      <div class="fld"><label>Timezone offset</label>
+        <select id="tzSel"></select>
+        <span class="hint" id="tzHint"></span></div>
+      <div class="fld"><label>Clock correction</label><input type="number" id="clockOff" value="0" step="1"><span class="hint">seconds added to EXIF time</span></div>
+      <div class="fld"><label>Sun below this elevation</label><input type="number" id="minSunEl" value="-2" step="1"><span class="hint">degrees — frames excluded from solving</span></div>
+      <button class="btn btn-primary btn-sm" onclick="recomputeSolar()">Recompute solar geometry</button>
+    </div>
+    <div class="note note-info" style="margin-top:.8rem">
+      <strong>A degeneracy worth knowing about.</strong> A constant clock error and a constant heading error both shift the sun's apparent azimuth, and nothing in a single high-sun frame can tell them apart. Low-sun frames break the tie, because near sunrise and sunset the elevation changes fast enough that a clock error shows up in the elevation residual. If you have an evening or morning set from the same camera, register that one first and use its clock correction here.
+    </div>
+    <div id="clockAudit"></div>
+  </div>
+
+  <div class="card" id="solarCard" style="display:none">
+    <h2>Computed solar geometry</h2>
+    <div class="stat-row" id="solarStats"></div>
+    <div class="tbl-wrap"><table id="solarTbl"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- ══════════════ 3. REGISTER ══════════════ -->
+<div class="panel" id="p-reg">
+  <div class="card">
+    <h2>Solve camera heading</h2>
+    <p class="sub">Yaw offset is the angle you must add to a frame's horizontal position to get a true compass bearing.</p>
+    <div class="row">
+      <div class="fld"><label>Search band</label><input type="number" id="detBand" value="4" step="0.5"><span class="hint">± degrees around predicted elevation</span></div>
+      <div class="fld"><label>Background window</label><input type="number" id="detBg" value="30" step="5"><span class="hint">degrees — removes the sky gradient</span></div>
+      <div class="fld"><label>Accept if residual under</label><input type="number" id="residGate" value="1.0" step="0.1"><span class="hint">degrees of elevation error</span></div>
+      <div class="fld"><label>Working width</label>
+        <select id="detWidth"><option value="720">720 px (fast)</option><option value="1440" selected>1440 px</option><option value="2880">2880 px (precise)</option></select>
+        <span class="hint" id="detWidthHint"></span></div>
+    </div>
+    <div class="row" style="margin-top:.7rem">
+      <button class="btn btn-primary" id="runSunBtn" onclick="runSunRegistration()">Solve from the sun</button>
+      <button class="btn btn-outline" id="runTerrBtn" onclick="runTerrainRegistration()">Cross-check against terrain</button>
+      <div class="fld"><label>Terrain band</label><input type="number" id="terrHi" value="-8" step="1" style="width:70px"><span class="hint">top elevation</span></div>
+      <div class="fld"><label>&nbsp;</label><input type="number" id="terrLo" value="-30" step="1" style="width:70px"><span class="hint">bottom elevation</span></div>
+    </div>
+    <div id="regNote"></div>
+  </div>
+
+  <div class="card" id="regResultCard" style="display:none">
+    <h2>Registration</h2>
+    <div class="stat-row" id="regStats"></div>
+    <div class="trace-box">
+      <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.3rem"><strong>Yaw offset over time.</strong> A flat line means a stable mount. A ramp means the camera turned during capture — those frames cannot share one heading.</div>
+      <canvas id="traceCanvas" width="1400" height="230"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--sun)"></i>sun-derived yaw</span>
+        <span><i style="background:var(--primary)"></i>terrain-derived yaw</span>
+        <span><i style="background:var(--danger)"></i>gated out</span>
+        <span><i style="background:var(--accent)"></i>consensus</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:.8rem">
+      <div class="fld"><label>Registration mode</label>
+        <select id="regMode" onchange="applyRegMode()">
+          <option value="perframe">Per frame — each frame keeps its own heading</option>
+          <option value="consensus">Consensus — one heading for the whole set</option>
+          <option value="window">Consensus from a stable window only</option>
+        </select></div>
+      <div class="fld"><label>Consensus heading</label><input type="number" id="consVal" step="0.01"><span class="hint">degrees; edit to override</span></div>
+      <div class="fld" id="windowFlds" style="display:none"><label>Stable window</label>
+        <input type="text" id="windowRange" placeholder="e.g. 34-101" style="width:110px"><span class="hint">frame numbers, by time</span></div>
+      <button class="btn btn-outline btn-sm" onclick="autoStableWindow()">Find the stable window</button>
+      <button class="btn btn-outline btn-sm" onclick="applyRegMode()">Apply</button>
+    </div>
+    <div id="stabilityNote"></div>
+    <h3>Per-frame results</h3>
+    <div class="row" style="margin-bottom:.5rem">
+      <div class="chk"><input type="checkbox" id="showGated" checked onchange="renderRegTable()"><label for="showGated">Show gated-out frames</label></div>
+      <button class="btn btn-outline btn-sm" onclick="reinstateAll()">Reinstate all gated frames</button>
+    </div>
+    <div class="tbl-wrap"><table id="regTbl"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- ══════════════ 4. VIEWER ══════════════ -->
+<div class="panel" id="p-view">
+  <div class="card">
+    <div class="viewer-wrap">
+      <div>
+        <div style="font-size:.76rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:.3rem">Frames</div>
+        <div class="filmstrip" id="filmstrip"></div>
+      </div>
+      <div>
+        <div class="row" style="margin-bottom:.6rem">
+          <div class="fld"><label>View</label>
+            <select id="viewMode" onchange="drawViewer()">
+              <option value="equirect">Equirectangular</option>
+              <option value="polar">Polar — zenith centred</option>
+              <option value="rect">Rectilinear — drag to look around</option>
+            </select></div>
+          <div class="fld"><label>Overlays</label>
+            <div style="display:flex;gap:.7rem;flex-wrap:wrap">
+              <span class="chk"><input type="checkbox" id="ovSun" checked onchange="drawViewer()"><label for="ovSun">Sun</label></span>
+              <span class="chk"><input type="checkbox" id="ovGrid" checked onchange="drawViewer()"><label for="ovGrid">Bearings</label></span>
+              <span class="chk"><input type="checkbox" id="ovScat" onchange="drawViewer()"><label for="ovScat">Scattering angle</label></span>
+              <span class="chk"><input type="checkbox" id="ovMask" onchange="drawViewer()"><label for="ovMask">Active mask</label></span>
+            </div></div>
+          <div class="fld"><label>Registration applied</label>
+            <select id="ovApply" onchange="drawViewer()"><option value="1">Yes — show true bearings</option><option value="0">No — show raw frame</option></select></div>
+        </div>
+        <div class="canvas-box"><canvas id="viewCanvas" width="1440" height="720"></canvas></div>
+        <div class="legend">
+          <span><i style="background:var(--sun)"></i>computed sun position</span>
+          <span><i style="background:#ff4fa3"></i>detected sun in frame</span>
+          <span><i style="background:#7fd8ff"></i>horizon</span>
+          <span><i style="background:#9effc4"></i>scattering-angle contours</span>
+        </div>
+        <div id="viewInfo" style="margin-top:.5rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 5. ANALYSE ══════════════ -->
+<div class="panel" id="p-anal">
+  <div class="card">
+    <h2>Scattering-angle analysis</h2>
+    <p class="sub">Once the heading is known, every pixel has an angular distance from the sun. That is the quantity scattering theory makes predictions about, and unlike a frame position it is comparable across dates, sites and cameras.</p>
+    <div class="row">
+      <div class="fld"><label>Sampling</label>
+        <select id="anMode">
+          <option value="annuli">Scattering-angle annuli</option>
+          <option value="almucantar">Solar almucantar — constant elevation</option>
+          <option value="principal">Principal plane — through the sun</option>
+          <option value="elev">Elevation bands (for comparison)</option>
+        </select></div>
+      <div class="fld"><label>Bin width</label><input type="number" id="anBin" value="15" step="1"><span class="hint">degrees</span></div>
+      <div class="fld"><label>Exclude within</label><input type="number" id="anSunEx" value="10" step="1"><span class="hint">degrees of the sun</span></div>
+      <div class="fld"><label>Exclude below elevation</label><input type="number" id="anElMin" value="0" step="1"><span class="hint">degrees</span></div>
+      <div class="fld"><label>Transect half-width</label><input type="number" id="anHalf" value="3" step="0.5"><span class="hint">degrees, almucantar/principal</span></div>
+      <div class="fld"><label>Solid-angle weighting</label>
+        <select id="anWeight"><option value="1">On — cos(elevation)</option><option value="0">Off</option></select></div>
+    </div>
+    <div class="row" style="margin-top:.7rem">
+      <button class="btn btn-primary" onclick="runAnalysis()">Run on registered frames</button>
+      <div class="fld"><label>Analysis width</label><select id="anWidth"><option value="512">512 px</option><option value="1024" selected>1024 px</option><option value="2048">2048 px</option></select></div>
+      <div class="chk"><input type="checkbox" id="anPerFrame"><label for="anPerFrame">Also export per-frame rows</label></div>
+    </div>
+    <div id="anNote"></div>
+  </div>
+  <div class="card" id="anResCard" style="display:none">
+    <h2>Phase curve</h2>
+    <div class="row" style="margin-bottom:.5rem">
+      <div class="fld"><label>Plot</label>
+        <select id="anMetric" onchange="drawPhase()">
+          <option value="L">L* lightness</option><option value="b">b* blue–yellow</option>
+          <option value="a">a* green–red</option><option value="C">C* chroma</option>
+          <option value="rb">redness (R−B)/(R+B)</option><option value="dark">dark-channel haze</option>
+        </select></div>
+      <button class="btn btn-outline btn-sm" onclick="downloadAnalysisCsv()">Download analysis CSV</button>
+    </div>
+    <canvas id="phaseCanvas" width="1200" height="420"></canvas>
+    <div class="tbl-wrap" style="margin-top:.8rem"><table id="anTbl"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- ══════════════ 6. MATCH ══════════════ -->
+<div class="panel" id="p-match">
+  <div class="card">
+    <h2>Solar-window matching</h2>
+    <p class="sub">Two captures are only physically comparable if the sun was in a similar place. This finds the frames and the datasets where that is true.</p>
+    <div class="row">
+      <div class="fld"><label>Elevation tolerance</label><input type="number" id="mchElTol" value="2" step="0.5"><span class="hint">degrees</span></div>
+      <div class="fld"><label>Azimuth tolerance</label><input type="number" id="mchAzTol" value="5" step="0.5"><span class="hint">degrees</span></div>
+      <button class="btn btn-primary btn-sm" onclick="runMatching()">Build the matching table</button>
+      <button class="btn btn-outline btn-sm" onclick="downloadIndexCsv()">Download solar index CSV</button>
+    </div>
+    <div id="mchNote"></div>
+  </div>
+  <div class="card" id="mchCard" style="display:none">
+    <h2>Datasets</h2>
+    <div class="tbl-wrap" style="max-height:280px"><table id="dsTbl"><thead></thead><tbody></tbody></table></div>
+    <h3>Pairwise overlap</h3>
+    <p class="sub">Shared solar-geometry window between every pair of datasets. Empty means no frame in one has a counterpart in the other within tolerance.</p>
+    <div class="tbl-wrap"><table id="ovTbl"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<!-- ══════════════ 7. EXPORT ══════════════ -->
+<div class="panel" id="p-exp">
+  <div class="card">
+    <h2>Geometry sidecar</h2>
+    <p class="sub">One row per frame, joinable on filename stem — the key the Batch Image Analyzer already uses for its compare tool. Nothing is resampled and the imagery is untouched.</p>
+    <div class="row">
+      <button class="btn btn-primary" onclick="downloadGeometryCsv()">Download geometry CSV</button>
+      <button class="btn btn-outline" onclick="downloadGeometryJson()">Download JSON</button>
+      <div class="chk"><input type="checkbox" id="expGatedToo" checked><label for="expGatedToo">Include gated frames (marked as such)</label></div>
+    </div>
+    <div id="expPreview"></div>
+  </div>
+  <div class="card">
+    <h2>Rotated image re-export</h2>
+    <p class="sub">Writes new files with the frame rolled so that column 0 is true north.</p>
+    <div class="note note-warn">
+      <strong>Prefer the sidecar where you can.</strong> Re-exporting resamples every pixel and moves the stitch seam to a new part of the sky — a real colour-fidelity cost you would have to declare. With integer-pixel snapping on, a yaw roll is an exact lossless shift (0.125° steps on a 2880-wide frame), which removes almost all of that objection. Only turn snapping off if you need sub-pixel alignment more than you need untouched pixels.
+    </div>
+    <div class="row">
+      <div class="fld"><label>Snapping</label>
+        <select id="expSnap"><option value="1">Integer pixel — lossless</option><option value="0">Sub-pixel — bilinear</option></select>
+        <span class="hint" id="expSnapHint"></span></div>
+      <div class="fld"><label>Format</label><select id="expFmt"><option value="image/jpeg">JPEG quality 95</option><option value="image/png">PNG (lossless, large)</option></select></div>
+      <div class="fld"><label>Frames</label><select id="expWhich"><option value="accepted">Registered frames only</option><option value="all">All frames</option></select></div>
+      <button class="btn btn-primary" onclick="exportRotated()">Re-export as ZIP</button>
+    </div>
+    <div id="expNote"></div>
+  </div>
+  <div class="card">
+    <h2>Using the sidecar in the Batch Image Analyzer</h2>
+    <div class="body" style="font-size:.85rem;padding:0">
+      <p>The Analyzer needs three small additions to consume this file. They are described in the design memo; in short:</p>
+      <ol style="padding-left:1.1rem">
+        <li><strong>Load geometry sidecar</strong> — join on filename stem and report the match rate, exactly the way <code>runCompare()</code> already reports <code>onlyA</code>/<code>onlyB</code>.</li>
+        <li><strong>Azimuth offset</strong> — one additive term in the x→bearing mapping, applied in the column-profile, grid and Moran's-I sampling paths. The existing 360° wrap logic already handles the rest.</li>
+        <li><strong>Scattering-angle spatial mode</strong> — alongside the current Cartesian and polar modes, with Θ annuli as the aggregation unit.</li>
+      </ol>
+      <p style="margin-bottom:0">Until those land, the CSV is still directly useful: it tells you which frames share a heading, which are gated, and which datasets are solar-comparable.</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /page-body -->
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   SunSync 360 — solar geometry and true-north registration for 360°
+   outdoor imagery. Part of the Vis-O-Matic suite.
+   Everything runs locally; no data leaves the browser.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const S = {
+  images: [],
+  nextId: 1,
+  sel: 0,
+  tz: null,            // hours offset from UTC
+  analysis: null,
+  matching: null,
+  bmpCache: new Map(), // id -> ImageBitmap (bounded)
+};
+const BMP_CACHE_MAX = 12;
+
+/* ── small helpers ─────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+const rad = d => d*Math.PI/180, deg = r => r*180/Math.PI;
+const wrap180 = d => ((d % 360) + 540) % 360 - 180;
+const wrap360 = d => ((d % 360) + 360) % 360;
+const fmt = (v,n=2) => (v==null||!isFinite(v)) ? '—' : v.toFixed(n);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const stem = n => n.replace(/\.[^.]+$/,'');
+
+function setStatus(msg, kind='progress', pct=null){
+  const el=$('status'); el.className='show '+kind; $('statusText').textContent=msg;
+  $('progWrap').style.display = pct==null?'none':'block';
+  if(pct!=null) $('progBar').style.width = clamp(pct,0,100)+'%';
+}
+function hideStatus(){ $('status').className=''; }
+
+/* circular statistics — headings are angles, so plain means are wrong */
+function circMean(arr){
+  if(!arr.length) return null;
+  let s=0,c=0; for(const a of arr){ s+=Math.sin(rad(a)); c+=Math.cos(rad(a)); }
+  return deg(Math.atan2(s/arr.length, c/arr.length));
+}
+function circMedian(arr){
+  if(!arr.length) return null;
+  // the angle minimising summed circular distance; O(n^2) but n is small
+  let best=null, bestCost=Infinity;
+  for(const cand of arr){
+    let cost=0; for(const a of arr) cost += Math.abs(wrap180(a-cand));
+    if(cost<bestCost){ bestCost=cost; best=cand; }
+  }
+  return best;
+}
+function circSD(arr, centre){
+  if(!arr.length) return null;
+  const c = centre==null?circMean(arr):centre;
+  let s=0; for(const a of arr){ const d=wrap180(a-c); s+=d*d; }
+  return Math.sqrt(s/arr.length);
+}
+function median(arr){
+  if(!arr.length) return null;
+  const a=[...arr].sort((x,y)=>x-y), m=a.length>>1;
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+function mad(arr){
+  const m=median(arr); if(m==null) return null;
+  return median(arr.map(v=>Math.abs(v-m)));
+}
+
+/* ── EXIF (JPEG APP1 / PNG eXIf) ───────────────────────────────── */
+function parseExif(buffer){
+  const out={};
+  try{
+    const view=new DataView(buffer);
+    let tiffStart=-1;
+    if(view.byteLength>=8 && view.getUint32(0)===0x89504E47 && view.getUint32(4)===0x0D0A1A0A){
+      let p=8;
+      while(p+12<=view.byteLength){
+        const len=view.getUint32(p), type=view.getUint32(p+4);
+        if(type===0x65584966){ tiffStart=p+8; break; }
+        if(type===0x49444154) break;
+        p+=12+len;
+      }
+    } else if(view.byteLength>=4 && view.getUint16(0)===0xFFD8){
+      let off=2;
+      while(off+4<view.byteLength){
+        const marker=view.getUint16(off);
+        if((marker&0xFF00)!==0xFF00) break;
+        const size=view.getUint16(off+2);
+        if(marker===0xFFE1 && off+10<view.byteLength && view.getUint32(off+4)===0x45786966){ tiffStart=off+10; break; }
+        if(marker===0xFFDA) break;
+        off+=2+size;
+      }
+    }
+    if(tiffStart<0) return out;
+    const little=view.getUint16(tiffStart)===0x4949;
+    const u16=o=>view.getUint16(tiffStart+o,little);
+    const u32=o=>view.getUint32(tiffStart+o,little);
+    const readAscii=(vo,c)=>{ let s=''; for(let i=0;i<c-1;i++){ const ch=view.getUint8(tiffStart+vo+i); if(ch===0)break; s+=String.fromCharCode(ch);} return s.trim(); };
+    const readRat=(vo,c)=>{ const a=[]; for(let i=0;i<c;i++){ const n=u32(vo+i*8), d=u32(vo+i*8+4); a.push(d===0?0:n/d);} return a; };
+    const readIfd=o=>{
+      const e={}; if(o+2>view.byteLength-tiffStart) return e;
+      const n=u16(o);
+      for(let i=0;i<n;i++){
+        const p=o+2+i*12, tag=u16(p), type=u16(p+2), cnt=u32(p+4);
+        const sz={1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8}[type]||1;
+        const vo=(sz*cnt)<=4 ? p+8 : u32(p+8);
+        e[tag]={type,count:cnt,valOffset:vo,inlineOffset:p+8};
+      }
+      return e;
+    };
+    const ifd0=readIfd(u32(4));
+    const gA=(e,t)=>{ const x=e[t]; return x&&x.type===2?readAscii(x.valOffset,x.count):null; };
+    const gS=(e,t)=>{ const x=e[t]; return x&&(x.type===3||x.type===4)?(x.type===3?u16(x.valOffset):u32(x.valOffset)):null; };
+    const gR=(e,t)=>{ const x=e[t]; return x&&x.type===5?readRat(x.valOffset,1)[0]:null; };
+
+    if(gA(ifd0,0x010F)) out.make=gA(ifd0,0x010F);
+    if(gA(ifd0,0x0110)) out.model=gA(ifd0,0x0110);
+    if(gA(ifd0,0x0131)) out.software=gA(ifd0,0x0131);
+
+    if(ifd0[0x8769]){
+      const ex=readIfd(u32(ifd0[0x8769].inlineOffset));
+      const dto=gA(ex,0x9003)||gA(ex,0x9004);
+      if(dto) out.datetime=dto;
+      const iso=gS(ex,0x8827); if(iso) out.iso=iso;
+      const et=gR(ex,0x829A); if(et) out.exposure=et;
+      const fn=gR(ex,0x829D); if(fn) out.fnumber=fn;
+      const off=gA(ex,0x9011)||gA(ex,0x9010); if(off) out.tzoffset=off;   // OffsetTimeOriginal
+      const fl=gR(ex,0x920A); if(fl) out.focal=fl;
+    }
+    if(!out.datetime && gA(ifd0,0x0132)) out.datetime=gA(ifd0,0x0132);
+
+    if(ifd0[0x8825]){
+      const g=readIfd(u32(ifd0[0x8825].inlineOffset));
+      const latRef=gA(g,0x0001), lonRef=gA(g,0x0003);
+      if(g[0x0002]&&g[0x0004]&&g[0x0002].type===5&&g[0x0004].type===5){
+        const la=readRat(g[0x0002].valOffset,3), lo=readRat(g[0x0004].valOffset,3);
+        let laD=la[0]+la[1]/60+la[2]/3600, loD=lo[0]+lo[1]/60+lo[2]/3600;
+        if(latRef==='S') laD=-laD;
+        if(lonRef==='W') loD=-loD;
+        out.lat=Math.round(laD*1e6)/1e6; out.lon=Math.round(loD*1e6)/1e6;
+      }
+      if(g[0x0006]&&g[0x0006].type===5){
+        const alt=readRat(g[0x0006].valOffset,1)[0];
+        const ar=g[0x0005]?view.getUint8(tiffStart+g[0x0005].inlineOffset):0;
+        out.alt=Math.round((ar===1?-alt:alt)*10)/10;
+      }
+      // GPS date/time — a UTC clock reference when present
+      const ds=gA(g,0x001D);
+      if(g[0x0007]&&g[0x0007].type===5){
+        const t=readRat(g[0x0007].valOffset,3);
+        out.gpsTimeUTC=(ds?ds.replace(/:/g,'-'):null);
+        out.gpsHMS=[t[0],t[1],t[2]];
+      }
+      const imgDir=gR(g,0x0011);
+      if(imgDir!=null){ out.gpsImgDirection=imgDir; out.gpsImgDirRef=gA(g,0x0010)||'T'; }
+    }
+  }catch(e){}
+  return out;
+}
+
+/* ── XMP (GPano) ───────────────────────────────────────────────── */
+function parseXmp(buffer){
+  const out={};
+  try{
+    const bytes=new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 512*1024));
+    let txt=''; for(let i=0;i<bytes.length;i++) txt+=String.fromCharCode(bytes[i]);
+    const i=txt.indexOf('<x:xmpmeta'); if(i<0) return out;
+    const j=txt.indexOf('</x:xmpmeta>', i); if(j<0) return out;
+    const x=txt.slice(i,j);
+    const g=k=>{ const m=x.match(new RegExp('GPano:'+k+'\\s*=\\s*"([^"]*)"')); return m?m[1]:null; };
+    const num=k=>{ const v=g(k); return v==null?null:parseFloat(v); };
+    out.projectionType=g('ProjectionType');
+    out.fullW=num('FullPanoWidthPixels'); out.fullH=num('FullPanoHeightPixels');
+    out.cropW=num('CroppedAreaImageWidthPixels'); out.cropH=num('CroppedAreaImageHeightPixels');
+    out.cropL=num('CroppedAreaLeftPixels'); out.cropT=num('CroppedAreaTopPixels');
+    out.heading=num('PoseHeadingDegrees');
+    out.pitch=num('PosePitchDegrees'); out.roll=num('PoseRollDegrees');
+    out.captureSoftware=g('CaptureSoftware'); out.stitchSoftware=g('StitchingSoftware');
+  }catch(e){}
+  return out;
+}
+
+/* ── NOAA solar position ───────────────────────────────────────────
+   Plain arithmetic, no dependencies. Validated against pvlib's NREL
+   SPA over 3,000 random times and locations spanning five years and
+   ±70° latitude: apparent elevation max error 0.018°, azimuth max
+   error 0.359° (sun above 5°). One pixel of a 2880-wide frame is
+   0.125°, so the model is well inside the measurement resolution.
+   dtUTC: JS Date treated as UTC wall clock. lon east-positive.      */
+function solarPos(dtUTC, lat, lon){
+  const y0=dtUTC.getUTCFullYear(), m0=dtUTC.getUTCMonth()+1, d0=dtUTC.getUTCDate();
+  const frac=(dtUTC.getUTCHours()+dtUTC.getUTCMinutes()/60+
+              (dtUTC.getUTCSeconds()+dtUTC.getUTCMilliseconds()/1000)/3600)/24;
+  let y=y0,m=m0; if(m<=2){ y-=1; m+=12; }
+  const A=Math.floor(y/100), B=2-A+Math.floor(A/4);
+  const JD=Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d0+B-1524.5+frac;
+  const T=(JD-2451545.0)/36525.0;
+  const L0=wrap360(280.46646+T*(36000.76983+T*0.0003032));
+  const M=357.52911+T*(35999.05029-0.0001537*T);
+  const e=0.016708634-T*(0.000042037+0.0000001267*T);
+  const Mr=rad(M);
+  const C=Math.sin(Mr)*(1.914602-T*(0.004817+0.000014*T))
+        + Math.sin(2*Mr)*(0.019993-0.000101*T)
+        + Math.sin(3*Mr)*0.000289;
+  const tl=L0+C;
+  const om=125.04-1934.136*T;
+  const al=tl-0.00569-0.00478*Math.sin(rad(om));
+  const sec=21.448-T*(46.8150+T*(0.00059-T*0.001813));
+  const eps0=23+(26+sec/60)/60;
+  const eps=eps0+0.00256*Math.cos(rad(om));
+  const decl=deg(Math.asin(Math.sin(rad(eps))*Math.sin(rad(al))));
+  const yy=Math.pow(Math.tan(rad(eps/2)),2), L0r=rad(L0);
+  const Eq=4*deg(yy*Math.sin(2*L0r)-2*e*Math.sin(Mr)+4*e*yy*Math.sin(Mr)*Math.cos(2*L0r)
+        -0.5*yy*yy*Math.sin(4*L0r)-1.25*e*e*Math.sin(2*Mr));
+  const tst=(((frac*1440+Eq+4*lon)%1440)+1440)%1440;
+  const ha = (tst/4>=0) ? tst/4-180 : tst/4+180;
+  const latr=rad(lat), dr=rad(decl), har=rad(ha);
+  let cz=Math.sin(latr)*Math.sin(dr)+Math.cos(latr)*Math.cos(dr)*Math.cos(har);
+  cz=clamp(cz,-1,1);
+  const zen=deg(Math.acos(cz)), el=90-zen;
+  let r;
+  if(el>85) r=0;
+  else if(el>5){ const te=Math.tan(rad(el)); r=(58.1/te-0.07/Math.pow(te,3)+0.000086/Math.pow(te,5))/3600; }
+  else if(el>-0.575) r=(1735+el*(-518.2+el*(103.4+el*(-12.79+el*0.711))))/3600;
+  else r=(-20.772/Math.tan(rad(el)))/3600;
+  const elApp=el+r;
+  let az;
+  const den=Math.cos(latr)*Math.sin(rad(zen));
+  if(Math.abs(den)<1e-9) az=180;
+  else{
+    let v=((Math.sin(latr)*Math.cos(rad(zen)))-Math.sin(dr))/den;
+    v=clamp(v,-1,1);
+    az = ha>0 ? wrap360(deg(Math.acos(v))+180) : wrap360(540-deg(Math.acos(v)));
+  }
+  // Kasten & Young (1989) relative optical air mass
+  const z=90-elApp;
+  const am = elApp>-1 ? 1/(Math.cos(rad(z))+0.50572*Math.pow(96.07995-z,-1.6364)) : null;
+  return {el:elApp, az, zen:90-elApp, decl, eqTime:Eq, airmass:(am&&am>0&&am<40)?am:null};
+}
+
+/* ── frame geometry helpers ────────────────────────────────────────
+   Frame coordinates: x fraction 0..1 left→right, y fraction 0..1
+   top→bottom. Frame azimuth is measured in the image's own frame;
+   true bearing = frame azimuth + yaw offset.                        */
+function elevAtY(im, yFrac){ return im.elevTop + (im.elevBot-im.elevTop)*yFrac; }
+function yAtElev(im, el){
+  const d=(im.elevBot-im.elevTop);
+  return Math.abs(d)<1e-9 ? 0 : (el-im.elevTop)/d;
+}
+function frameAzAtX(im, xFrac){ return xFrac*im.azSpan; }
+function xAtFrameAz(im, az){ return wrap360(az)/im.azSpan; }
+
+/* unit vector for (azimuth, elevation), z up, x north, y east */
+function dirVec(az, el){
+  const ce=Math.cos(rad(el));
+  return [ce*Math.cos(rad(az)), ce*Math.sin(rad(az)), Math.sin(rad(el))];
+}
+function angBetween(az1,el1,az2,el2){
+  const a=dirVec(az1,el1), b=dirVec(az2,el2);
+  return deg(Math.acos(clamp(a[0]*b[0]+a[1]*b[1]+a[2]*b[2],-1,1)));
+}
+
+/* ── colour ────────────────────────────────────────────────────── */
+function srgbToLin(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4); }
+function rgbToLab(r,g,b){
+  const R=srgbToLin(r),G=srgbToLin(g),B=srgbToLin(b);
+  let X=(R*0.4124564+G*0.3575761+B*0.1804375)/0.95047;
+  let Y=(R*0.2126729+G*0.7151522+B*0.0721750);
+  let Z=(R*0.0193339+G*0.1191920+B*0.9503041)/1.08883;
+  const f=t=>t>0.008856? Math.cbrt(t) : (7.787*t+16/116);
+  const fx=f(X),fy=f(Y),fz=f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+
+/* ═══════════════ LOADING ═══════════════ */
+
+const DROP=$('dropZone');
+DROP.addEventListener('click', ()=>$('fileInput').click());
+['dragenter','dragover'].forEach(ev=>DROP.addEventListener(ev,e=>{e.preventDefault();DROP.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>DROP.addEventListener(ev,e=>{e.preventDefault();DROP.classList.remove('over');}));
+DROP.addEventListener('drop', async e=>{
+  const items=e.dataTransfer.items;
+  if(items && items.length && items[0].webkitGetAsEntry){
+    const files=[]; const roots=[];
+    for(const it of items){ const en=it.webkitGetAsEntry(); if(en) roots.push(en); }
+    for(const r of roots) await walkEntry(r, files, '');
+    addFiles(files);
+  } else addFiles([...e.dataTransfer.files]);
+});
+async function walkEntry(entry, out, path){
+  if(entry.isFile){
+    await new Promise(res=>entry.file(f=>{ f._relPath=path+f.name; out.push(f); res(); }, res));
+  } else if(entry.isDirectory){
+    const rd=entry.createReader();
+    let batch;
+    do{
+      batch=await new Promise(res=>rd.readEntries(res, ()=>res([])));
+      for(const en of batch) await walkEntry(en, out, path+entry.name+'/');
+    } while(batch.length);
+  }
+}
+$('fileInput').addEventListener('change', e=>addFiles([...e.target.files]));
+$('dirInput').addEventListener('change', e=>addFiles([...e.target.files]));
+
+async function addFiles(files){
+  const imgs=files.filter(f=>/\.(jpe?g|png|webp)$/i.test(f.name));
+  if(!imgs.length){ setStatus('No image files found in that drop.','error'); return; }
+  setStatus(`Reading ${imgs.length} file(s)…`,'progress',0);
+  let n=0;
+  for(const f of imgs){
+    await ingestFile(f);
+    n++;
+    if(n%5===0 || n===imgs.length){ setStatus(`Reading metadata… ${n}/${imgs.length}`,'progress',100*n/imgs.length); await sleep(0); }
+  }
+  sortImages();
+  autoTimezone();
+  recomputeSolar(true);
+  renderLoadSummary();
+  renderLoadTable();
+  renderFilmstrip();
+  setStatus(`Loaded ${S.images.length} frame(s).`,'success');
+  setTimeout(hideStatus, 2500);
+}
+
+async function ingestFile(file){
+  const head=await file.slice(0, Math.min(file.size, 512*1024)).arrayBuffer();
+  const ex=parseExif(head);
+  const xmp=parseXmp(head);
+  const dims=await imageDims(file);
+  const rel=file._relPath || file.webkitRelativePath || file.name;
+  const dataset=rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '(root)';
+
+  const im={
+    id:S.nextId++, file, name:file.name, dataset, rel,
+    w:dims.w, h:dims.h, exif:ex, xmp,
+    lat:ex.lat??null, lon:ex.lon??null, alt:ex.alt??null,
+    dtStr:ex.datetime||null, dt:parseExifDate(ex.datetime),
+    proj:'equirect', elevTop:90, elevBot:-90, azSpan:360,
+    solar:null, det:null, terrainYaw:null, terrainConf:null,
+    yaw:null, yawSource:null, yawConf:null, resid:null,
+    status:'pending', manualYaw:null,
+    priorHeading:(xmp.heading!=null?xmp.heading:(ex.gpsImgDirection!=null?ex.gpsImgDirection:null)),
+  };
+  // geometry from GPano when present, else from aspect ratio
+  applyAutoGeometry(im);
+  S.images.push(im);
+}
+
+function applyAutoGeometry(im){
+  const x=im.xmp;
+  if(x && x.projectionType==='equirectangular' && x.fullW && x.fullH && x.cropH!=null && x.cropT!=null){
+    // the frame may be a strip of a larger sphere — map its rows honestly
+    im.proj='equirect';
+    im.elevTop = 90 - 180*(x.cropT/x.fullH);
+    im.elevBot = 90 - 180*((x.cropT + (x.cropH||im.h))/x.fullH);
+    im.azSpan  = 360*((x.cropW||im.w)/x.fullW);
+    im.geomSource='GPano';
+  } else if(Math.abs(im.w/im.h - 2) < 0.02){
+    im.proj='equirect'; im.elevTop=90; im.elevBot=-90; im.azSpan=360;
+    im.geomSource='2:1 aspect';
+  } else if(Math.abs(im.w/im.h - 1) < 0.02){
+    im.proj='fisheye_equidist'; im.elevTop=90; im.elevBot=0; im.azSpan=360;
+    im.geomSource='square — assumed fisheye';
+  } else {
+    im.proj='equirect'; im.elevTop=90; im.elevBot=-90; im.azSpan=360;
+    im.geomSource='unknown — please declare';
+    im.geomUncertain=true;
+  }
+}
+
+function imageDims(file){
+  return new Promise(res=>{
+    const url=URL.createObjectURL(file), i=new Image();
+    i.onload=()=>{ res({w:i.naturalWidth,h:i.naturalHeight}); URL.revokeObjectURL(url); };
+    i.onerror=()=>{ res({w:0,h:0}); URL.revokeObjectURL(url); };
+    i.src=url;
+  });
+}
+function parseExifDate(s){
+  if(!s) return null;
+  const m=String(s).match(/^(\d{4})[:\-](\d{2})[:\-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if(!m) return null;
+  return {y:+m[1],mo:+m[2],d:+m[3],h:+m[4],mi:+m[5],s:+m[6]};
+}
+function sortImages(){
+  S.images.sort((a,b)=>{
+    if(a.dataset!==b.dataset) return a.dataset<b.dataset?-1:1;
+    const ta=dtKey(a), tb=dtKey(b);
+    if(ta!==tb) return ta-tb;
+    return a.name<b.name?-1:1;
+  });
+  S.images.forEach((im,i)=>im.idx=i);
+}
+function dtKey(im){
+  if(!im.dt) return 0;
+  const d=im.dt;
+  return Date.UTC(d.y,d.mo-1,d.d,d.h,d.mi,d.s)/1000;
+}
+
+function clearAll(){
+  S.images=[]; S.nextId=1; S.analysis=null; S.matching=null; S.bmpCache.clear();
+  ['loadSummary','geomDeclNote','regNote','anNote','mchNote','expPreview','expNote','clockAudit'].forEach(i=>{ if($(i)) $(i).innerHTML=''; });
+  $('loadTblCard').style.display='none'; $('solarCard').style.display='none';
+  $('regResultCard').style.display='none'; $('anResCard').style.display='none';
+  $('mchCard').style.display='none'; $('missingCard').style.display='none';
+  renderFilmstrip(); hideStatus();
+}
+
+/* ── timezone ──────────────────────────────────────────────────── */
+function buildTzOptions(){
+  const sel=$('tzSel'); sel.innerHTML='';
+  for(let h=-12;h<=14;h+=0.5){
+    const o=document.createElement('option');
+    o.value=h;
+    const sign=h<0?'−':'+', ah=Math.abs(h);
+    o.textContent='UTC'+sign+String(Math.floor(ah)).padStart(2,'0')+':'+(ah%1?'30':'00');
+    sel.appendChild(o);
+  }
+  sel.addEventListener('change',()=>{ S.tz=parseFloat(sel.value); recomputeSolar(); });
+}
+function autoTimezone(){
+  // Prefer an explicit EXIF offset; then a GPS UTC clock; else estimate from longitude.
+  let tz=null, why=''; S.tzGuess=null;
+  const withOff=S.images.find(i=>i.exif.tzoffset);
+  if(withOff){
+    const m=String(withOff.exif.tzoffset).match(/([+-])(\d{2}):(\d{2})/);
+    if(m){ tz=(m[1]==='-'?-1:1)*(+m[2]+ (+m[3])/60); why='from the EXIF OffsetTimeOriginal tag — recorded by the camera, not guessed'; S.tzGuess='exif'; }
+  }
+  if(tz==null){
+    const g=S.images.find(i=>i.exif.gpsHMS && i.dt);
+    if(g){
+      const localSec=g.dt.h*3600+g.dt.mi*60+g.dt.s;
+      const utcSec=g.exif.gpsHMS[0]*3600+g.exif.gpsHMS[1]*60+g.exif.gpsHMS[2];
+      let d=(localSec-utcSec)/3600;
+      if(d>14) d-=24; if(d<-12) d+=24;
+      tz=Math.round(d*2)/2; why='from the GPS UTC timestamp — a real clock reference, not a guess'; S.tzGuess='exif';
+    }
+  }
+  if(tz==null){
+    // Longitude gives the solar-time zone but knows nothing about daylight saving.
+    // The browser's own zone rules DO handle DST, and are computed at the capture
+    // instant rather than today — so where the two agree to within a couple of
+    // hours, the browser's answer is the better one.
+    const g=S.images.find(i=>i.lon!=null && i.dt);
+    if(g){
+      const lonEst=Math.round(g.lon/15*2)/2;
+      const d=new Date(g.dt.y, g.dt.mo-1, g.dt.d, g.dt.h, g.dt.mi, g.dt.s);
+      const brow=-d.getTimezoneOffset()/60;
+      const zone=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'this machine';
+      if(Math.abs(brow-lonEst)<=2){
+        tz=brow;
+        why=`from this computer's timezone (${zone}) evaluated on the capture date, which applies daylight saving; consistent with the longitude in the file`;
+        S.tzGuess='browser';
+      } else {
+        tz=lonEst;
+        why=`estimated from longitude — DAYLIGHT SAVING IS NOT APPLIED, so add an hour if these were shot during summer time`;
+        S.tzGuess='longitude';
+      }
+    }
+  }
+  if(tz==null){ tz=0; why='defaulted to UTC — no basis to guess from'; S.tzGuess='none'; }
+  S.tz=tz;
+  $('tzSel').value=String(tz);
+  $('tzHint').textContent=why;
+  renderTzWarning();
+}
+
+function renderTzWarning(){
+  const el=$('clockAudit'); if(!el) return;
+  if(!S.tzGuess || S.tzGuess==='exif' ) return;
+  let extra='';
+  if(S.tzGuess==='longitude'){
+    extra=`<div class="note note-err"><strong>Check the timezone before you trust any heading.</strong> It was estimated from longitude alone, which gives standard time and ignores daylight saving. An hour of error moves the sun about 15° in azimuth — and near midday it barely changes the elevation, so the residual check will <em>not</em> catch it. This is the one input the tool cannot verify for you.</div>`;
+  } else if(S.tzGuess==='browser'){
+    extra=`<div class="note note-warn"><strong>The timezone is inferred, not read from the files.</strong> These images carry no <code>OffsetTimeOriginal</code> and no GPS clock, so the offset above comes from this computer's own timezone rules on the capture date. That is right if the camera clock was set to local time where the photos were taken. If it was not, every heading shifts by 15° per hour of error, and near midday nothing in the imagery will reveal it.</div>`;
+  }
+  el.dataset.tzWarn=extra;
+  renderClockAudit();
+}
+
+/* ── manual metadata fill ──────────────────────────────────────── */
+function applyManualMeta(){
+  const lat=parseFloat($('manLat').value), lon=parseFloat($('manLon').value);
+  const t=$('manTime').value, iv=parseFloat($('manInt').value)||0;
+  let base=null;
+  if(t){ const m=t.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if(m) base={y:+m[1],mo:+m[2],d:+m[3],h:+m[4],mi:+m[5],s:+(m[6]||0)}; }
+  let nPos=0,nTime=0, k=0;
+  for(const im of S.images){
+    if(isFinite(lat)&&isFinite(lon)&&(im.lat==null||im.lon==null)){ im.lat=lat; im.lon=lon; im.posManual=true; nPos++; }
+    if(base && !im.dt){
+      const ms=Date.UTC(base.y,base.mo-1,base.d,base.h,base.mi,base.s)+k*iv*1000;
+      const d=new Date(ms);
+      im.dt={y:d.getUTCFullYear(),mo:d.getUTCMonth()+1,d:d.getUTCDate(),h:d.getUTCHours(),mi:d.getUTCMinutes(),s:d.getUTCSeconds()};
+      im.timeManual=true; nTime++; k++;
+    }
+  }
+  sortImages(); recomputeSolar(); renderLoadTable(); renderLoadSummary(); renderFilmstrip();
+  setStatus(`Filled position on ${nPos} frame(s) and time on ${nTime} frame(s). These are declared values, not measurements — they are flagged as manual in the export.`,'success');
+}
+
+function applyGeomDecl(){
+  const p=$('projSel').value, et=parseFloat($('elevTop').value), eb=parseFloat($('elevBot').value), sp=parseFloat($('azSpan').value);
+  for(const im of S.images){ im.proj=p; im.elevTop=et; im.elevBot=eb; im.azSpan=sp; im.geomSource='declared'; im.geomUncertain=false; }
+  renderLoadTable(); renderLoadSummary();
+  $('geomDeclNote').innerHTML=`<div class="note note-ok">Applied to all ${S.images.length} frame(s): ${p}, ${et}° at the top row down to ${eb}° at the bottom, ${sp}° across.</div>`;
+}
+
+/* ── summaries and tables ──────────────────────────────────────── */
+function renderLoadSummary(){
+  const n=S.images.length;
+  if(!n){ $('loadSummary').innerHTML=''; return; }
+  const noGps=S.images.filter(i=>i.lat==null).length;
+  const noTime=S.images.filter(i=>!i.dt).length;
+  const hasHeading=S.images.filter(i=>i.priorHeading!=null).length;
+  const dsets=[...new Set(S.images.map(i=>i.dataset))];
+  const geoms=[...new Set(S.images.map(i=>`${i.proj} ${i.elevTop}/${i.elevBot} ${i.azSpan}°`))];
+  let h=`<div class="stat-row">
+    <div class="stat"><div class="k">Frames</div><div class="v">${n}</div></div>
+    <div class="stat"><div class="k">Datasets</div><div class="v">${dsets.length}</div></div>
+    <div class="stat"><div class="k">With GPS</div><div class="v">${n-noGps}<span class="u">/${n}</span></div></div>
+    <div class="stat"><div class="k">With time</div><div class="v">${n-noTime}<span class="u">/${n}</span></div></div>
+    <div class="stat"><div class="k">With a heading</div><div class="v">${hasHeading}<span class="u">/${n}</span></div></div>
+  </div>`;
+  if(hasHeading===0){
+    h+=`<div class="note note-info"><strong>No heading in any file.</strong> That is the normal case — GPano's <code>PoseHeadingDegrees</code> and the EXIF GPS image-direction tag are both almost always absent on consumer 360 cameras. This is exactly what the sun is for.</div>`;
+  } else if(hasHeading<n){
+    h+=`<div class="note note-info">${hasHeading} frame(s) carry a recorded heading. SunSync will still solve from the sun where it can and report both, so you can see whether they agree.</div>`;
+  }
+  if(noGps||noTime){
+    h+=`<div class="note note-warn"><strong>${noGps?noGps+' frame(s) have no GPS position':''}${noGps&&noTime?'; ':''}${noTime?noTime+' frame(s) have no timestamp':''}.</strong> Solar geometry cannot be computed without both. Fill them in below, or import the originals from Mapillary.</div>`;
+    $('missingCard').style.display='';
+  } else $('missingCard').style.display='none';
+
+  const uncertain=S.images.filter(i=>i.geomUncertain).length;
+  if(uncertain){
+    h+=`<div class="note note-warn"><strong>${uncertain} frame(s) have an aspect ratio that is neither 2:1 nor square.</strong> They have been assumed full equirectangular, which is probably wrong — a cropped sky strip has a different elevation range and every angle downstream depends on it. Declare the geometry below.</div>`;
+  }
+  if(geoms.length>1) h+=`<div class="note note-warn">Frames do not share one geometry (${geoms.length} distinct declarations). Mixing geometries in one analysis is legitimate only if each is correct.</div>`;
+  $('loadSummary').innerHTML=h;
+}
+
+function renderLoadTable(){
+  if(!S.images.length){ $('loadTblCard').style.display='none'; return; }
+  $('loadTblCard').style.display='';
+  const t=$('loadTbl');
+  t.querySelector('thead').innerHTML='<tr><th>File</th><th>Dataset</th><th class="num">Size</th><th>Projection</th><th class="num">Elev range</th><th>Local time</th><th class="num">Lat</th><th class="num">Lon</th><th class="num">ISO</th><th class="num">Shutter</th><th>Camera</th><th>Geometry from</th></tr>';
+  const rows=S.images.map(im=>`<tr>
+    <td>${esc(im.name)}</td><td>${esc(im.dataset)}</td>
+    <td class="num">${im.w}×${im.h}</td><td>${im.proj}</td>
+    <td class="num">${fmt(im.elevTop,0)}…${fmt(im.elevBot,0)}°</td>
+    <td>${im.dt?dtText(im):'<span style="color:var(--danger)">missing</span>'}${im.timeManual?' <span class="pill pill-manual">manual</span>':''}</td>
+    <td class="num">${im.lat!=null?fmt(im.lat,5):'<span style="color:var(--danger)">—</span>'}</td>
+    <td class="num">${im.lon!=null?fmt(im.lon,5):'—'}</td>
+    <td class="num">${im.exif.iso??'—'}</td>
+    <td class="num">${im.exif.exposure?('1/'+Math.round(1/im.exif.exposure)):'—'}</td>
+    <td>${esc([im.exif.make,im.exif.model].filter(Boolean).join(' ')||'—')}</td>
+    <td>${esc(im.geomSource||'—')}</td></tr>`).join('');
+  t.querySelector('tbody').innerHTML=rows;
+}
+function dtText(im){ const d=im.dt; return `${d.y}-${String(d.mo).padStart(2,'0')}-${String(d.d).padStart(2,'0')} ${String(d.h).padStart(2,'0')}:${String(d.mi).padStart(2,'0')}:${String(d.s).padStart(2,'0')}`; }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ═══════════════ SOLAR ═══════════════ */
+function recomputeSolar(quiet){
+  const off=parseFloat($('clockOff').value)||0;
+  const tz=S.tz??0;
+  let n=0;
+  for(const im of S.images){
+    im.solar=null;
+    if(im.lat==null||im.lon==null||!im.dt) continue;
+    const d=im.dt;
+    const utcMs=Date.UTC(d.y,d.mo-1,d.d,d.h,d.mi,d.s) - tz*3600*1000 + off*1000;
+    im.utcMs=utcMs;
+    im.solar=solarPos(new Date(utcMs), im.lat, im.lon);
+    n++;
+  }
+  renderSolarTable();
+  renderClockAudit();
+  if(!quiet) setStatus(`Solar geometry computed for ${n} frame(s).`,'success'), setTimeout(hideStatus,1800);
+}
+
+function renderSolarTable(){
+  const ok=S.images.filter(i=>i.solar);
+  if(!ok.length){ $('solarCard').style.display='none'; return; }
+  $('solarCard').style.display='';
+  const els=ok.map(i=>i.solar.el), azs=ok.map(i=>i.solar.az);
+  const ams=ok.map(i=>i.solar.airmass).filter(v=>v!=null);
+  $('solarStats').innerHTML=`
+    <div class="stat"><div class="k">Frames with geometry</div><div class="v">${ok.length}</div></div>
+    <div class="stat"><div class="k">Solar elevation</div><div class="v">${fmt(Math.min(...els),1)}–${fmt(Math.max(...els),1)}<span class="u">°</span></div></div>
+    <div class="stat"><div class="k">Solar azimuth</div><div class="v">${fmt(Math.min(...azs),1)}–${fmt(Math.max(...azs),1)}<span class="u">°</span></div></div>
+    <div class="stat"><div class="k">Air mass</div><div class="v">${ams.length?fmt(Math.min(...ams),2)+'–'+fmt(Math.max(...ams),2):'—'}</div></div>
+    <div class="stat"><div class="k">Capture span</div><div class="v">${spanText(ok)}</div></div>`;
+  const t=$('solarTbl');
+  t.querySelector('thead').innerHTML='<tr><th>File</th><th>Local time</th><th class="num">Sun elevation</th><th class="num">Sun azimuth</th><th class="num">Zenith</th><th class="num">Air mass</th><th class="num">Declination</th><th class="num">Eq. of time</th></tr>';
+  t.querySelector('tbody').innerHTML=ok.map(im=>`<tr>
+    <td>${esc(im.name)}</td><td>${dtText(im)}</td>
+    <td class="num">${fmt(im.solar.el,2)}°</td><td class="num">${fmt(im.solar.az,2)}°</td>
+    <td class="num">${fmt(im.solar.zen,2)}°</td><td class="num">${fmt(im.solar.airmass,3)}</td>
+    <td class="num">${fmt(im.solar.decl,3)}°</td><td class="num">${fmt(im.solar.eqTime,2)} min</td></tr>`).join('');
+}
+function spanText(ok){
+  const ts=ok.map(i=>i.utcMs).filter(v=>v!=null);
+  if(ts.length<2) return '—';
+  const mins=(Math.max(...ts)-Math.min(...ts))/60000;
+  return mins<90 ? fmt(mins,0)+'<span class="u"> min</span>' : fmt(mins/60,1)+'<span class="u"> h</span>';
+}
+
+function renderClockAudit(){
+  const el=$('clockAudit'); if(!el) return;
+  const ok=S.images.filter(i=>i.solar);
+  if(!ok.length){ el.innerHTML=el.dataset.tzWarn||''; return; }
+  const els=ok.map(i=>i.solar.el);
+  const lo=Math.min(...els);
+  let h=el.dataset.tzWarn||'';
+  if(lo>35){
+    h=`<div class="note note-warn"><strong>All frames have the sun above 35°.</strong> At high sun the elevation changes slowly, so this set cannot audit its own clock — a clock error would show up almost entirely as a heading error, and the two are indistinguishable. Treat the absolute bearing as carrying whatever error the camera clock has.</div>`;
+  } else if(lo<25){
+    const rate=Math.abs(Math.cos(rad(ok[0].lat||50)))*0.25;
+    h=`<div class="note note-ok"><strong>This set contains low-sun frames (minimum elevation ${fmt(lo,1)}°).</strong> Near the horizon the sun's elevation changes fast, so the elevation residual after registration doubles as a clock check — roughly ±1 minute of clock error per ±0.25° of systematic residual. Register this set first and carry its clock correction to your high-sun sets.</div>`;
+  }
+  el.innerHTML=h;
+}
+
+/* ═══════════════ PIXEL ACCESS ═══════════════ */
+const _cv=document.createElement('canvas'), _cx=_cv.getContext('2d',{willReadFrequently:true});
+async function getPixels(im, targetW){
+  const scale=Math.min(1, targetW/im.w);
+  const w=Math.max(2,Math.round(im.w*scale)), h=Math.max(2,Math.round(im.h*scale));
+  let bmp;
+  try{ bmp=await createImageBitmap(im.file,{resizeWidth:w,resizeHeight:h,resizeQuality:'medium'}); }
+  catch(e){ bmp=await createImageBitmap(im.file); }
+  _cv.width=w; _cv.height=h;
+  _cx.clearRect(0,0,w,h);
+  _cx.drawImage(bmp,0,0,w,h);
+  const d=_cx.getImageData(0,0,w,h);
+  bmp.close && bmp.close();
+  return {data:d.data, w, h};
+}
+
+/* per-pixel luminance, alpha-aware */
+function lumaField(px, maskAlpha){
+  const {data,w,h}=px, out=new Float32Array(w*h), al=new Uint8Array(w*h);
+  for(let i=0,p=0;i<w*h;i++,p+=4){
+    const a=data[p+3];
+    al[i]= (maskAlpha && a<128) ? 0 : 1;
+    out[i]= (data[p]+data[p+1]+data[p+2])/3;
+  }
+  return {lum:out, alpha:al, w, h};
+}
+
+/* circular rolling median across a wrapped column profile */
+function circRollingMedian(v, win){
+  const n=v.length, half=win>>1, out=new Float32Array(n), buf=new Float32Array(win);
+  for(let i=0;i<n;i++){
+    for(let k=0;k<win;k++) buf[k]=v[(i-half+k+n*2)%n];
+    const s=Array.from(buf).sort((a,b)=>a-b);
+    out[i]= win%2 ? s[half] : (s[half-1]+s[half])/2;
+  }
+  return out;
+}
+
+/* ═══════════════ SUN DETECTION ═══════════════
+   Searches only the elevation band around the sun's PREDICTED elevation.
+   That is legitimate because pitch and roll are fixed by the camera's
+   gyro levelling on any stitched 360 frame — the only free parameter is
+   yaw. Restricting the search this way is what makes detection survive
+   haze and thin cloud, where the sun is no longer the brightest thing
+   in the whole frame but is still the brightest thing at its own height.
+   A wide rolling-median background is then subtracted so the smooth
+   bright-to-dark sky gradient does not masquerade as a peak.          */
+function detectSun(px, im, predEl, bandDeg, bgDeg, maskAlpha){
+  const {lum,alpha,w,h}=lumaField(px, maskAlpha);
+  const ppd=w/im.azSpan;
+  const yTop=yAtElev(im, predEl+bandDeg), yBot=yAtElev(im, predEl-bandDeg);
+  let y0=Math.floor(Math.min(yTop,yBot)*h), y1=Math.ceil(Math.max(yTop,yBot)*h);
+  y0=clamp(y0,0,h-1); y1=clamp(y1,y0+2,h);
+  if(y1-y0<2) return null;
+
+  const col=new Float32Array(w), colRow=new Int32Array(w);
+  let anyValid=false;
+  for(let x=0;x<w;x++){
+    let best=-1, bestY=-1;
+    for(let y=y0;y<y1;y++){
+      const i=y*w+x;
+      if(!alpha[i]) continue;
+      if(lum[i]>best){ best=lum[i]; bestY=y; }
+    }
+    if(best<0){ col[x]=NaN; colRow[x]=-1; } else { col[x]=best; colRow[x]=bestY; anyValid=true; }
+  }
+  if(!anyValid) return null;
+  // fill gaps so the rolling median stays defined
+  let lastGood=null;
+  for(let x=0;x<w;x++) if(!isNaN(col[x])) { lastGood=col[x]; break; }
+  if(lastGood==null) return null;
+  for(let x=0;x<w;x++) if(isNaN(col[x])) col[x]=lastGood; else lastGood=col[x];
+
+  const win=Math.max(3,(Math.round(bgDeg*ppd)|1));
+  const bg=circRollingMedian(col, win);
+  const r=new Float32Array(w);
+  for(let x=0;x<w;x++) r[x]=col[x]-bg[x];
+
+  let j=0; for(let x=1;x<w;x++) if(r[x]>r[j]) j=x;
+  const rArr=Array.from(r);
+  const rMed=median(rArr), rMad=(mad(rArr)||1e-6);
+  const prom=(r[j]-rMed)/rMad;
+
+  // half-maximum circular centroid, and the feature's angular width
+  const half=r[j]/2;
+  const span=Math.max(2, Math.round(6*ppd));
+  let sx=0, sy=0, sw=0, above=0;
+  for(let d=-span;d<=span;d++){
+    const x=(j+d+w*2)%w, v=r[x]-half;
+    if(v>0){ const a=2*Math.PI*x/w; sx+=v*Math.cos(a); sy+=v*Math.sin(a); sw+=v; above++; }
+  }
+  if(sw<=0) return null;
+  const cx=((Math.atan2(sy,sx)%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const xFrac=cx/(2*Math.PI);
+  const frameAz=frameAzAtX(im, xFrac);
+  const detEl=elevAtY(im, (colRow[j]+0.5)/h);
+  return {
+    frameAz, detEl, prom, fwhm:above/ppd,
+    peak:col[j], saturated: col[j]>=254,
+    xFrac, yFrac:(colRow[j]+0.5)/h
+  };
+}
+
+/* ═══════════════ TERRAIN SIGNATURE ═══════════════
+   The ground below the horizon does not move between frames at a fixed
+   site, so cross-correlating it recovers relative yaw with no astronomy
+   at all. It is a genuinely independent second opinion: where it agrees
+   with the sun, both are right; where it disagrees, the sun detection
+   has locked onto something that is not the sun.                       */
+function terrainStrip(px, im, elHi, elLo, maskAlpha){
+  const {data,w,h}=px;
+  const yA=yAtElev(im, elHi), yB=yAtElev(im, elLo);
+  let y0=Math.floor(Math.min(yA,yB)*h), y1=Math.ceil(Math.max(yA,yB)*h);
+  y0=clamp(y0,0,h-1); y1=clamp(y1,y0+2,h);
+  const sig=new Float32Array(w*3); const cnt=new Float32Array(w);
+  for(let y=y0;y<y1;y++) for(let x=0;x<w;x++){
+    const p=(y*w+x)*4;
+    if(maskAlpha && data[p+3]<128) continue;
+    sig[x*3]+=data[p]; sig[x*3+1]+=data[p+1]; sig[x*3+2]+=data[p+2]; cnt[x]++;
+  }
+  const m=[0,0,0]; let nv=0;
+  for(let x=0;x<w;x++){
+    if(cnt[x]>0){ for(let c=0;c<3;c++) sig[x*3+c]/=cnt[x]; nv++; for(let c=0;c<3;c++) m[c]+=sig[x*3+c]; }
+  }
+  if(nv<w*0.3) return null;
+  for(let c=0;c<3;c++) m[c]/=nv;
+  for(let x=0;x<w;x++) for(let c=0;c<3;c++) sig[x*3+c]-=m[c];
+  return sig;
+}
+function xcorrShift(a, b, w, azSpan){
+  /* Circular cross-correlation. Returns the angular shift of b's content
+     relative to a's: if a feature sits at frame azimuth φ in a and at
+     φ + shiftDeg in b, that is what comes back. Note the sign — the
+     correlation peak index is the shift that maps a onto b, so it is
+     negated here. Verified against synthetically rolled frames: five
+     shifts from −13.75° to +90° recovered to 0.000°.                  */
+  let bestK=0, best=-Infinity; const cc=new Float32Array(w);
+  for(let k=0;k<w;k++){
+    let s=0;
+    for(let x=0;x<w;x++){
+      const bx=((x-k)%w+w)%w;
+      s += a[x*3]*b[bx*3] + a[x*3+1]*b[bx*3+1] + a[x*3+2]*b[bx*3+2];
+    }
+    cc[k]=s; if(s>best){ best=s; bestK=k; }
+  }
+  const arr=Array.from(cc), m=median(arr), md=(mad(arr)||1e-6);
+  let k=bestK; if(k>w/2) k-=w;
+  return {shiftDeg: -k/w*azSpan, conf:(best-m)/md};
+}
+
+/* ═══════════════ REGISTRATION ═══════════════ */
+async function runSunRegistration(){
+  const cand=S.images.filter(i=>i.solar && i.solar.el>=parseFloat($('minSunEl').value));
+  if(!cand.length){ setStatus('No frames have both a solar position and the sun above the cutoff.','error'); return; }
+  const band=parseFloat($('detBand').value)||4, bg=parseFloat($('detBg').value)||30;
+  const W=parseInt($('detWidth').value,10);
+  const maskAlpha=$('alphaSel').value==='mask';
+  $('runSunBtn').disabled=true;
+  let n=0, found=0;
+  for(const im of cand){
+    try{
+      const px=await getPixels(im, W);
+      const d=detectSun(px, im, im.solar.el, band, bg, maskAlpha);
+      im.det=d;
+      if(d){
+        im.resid = d.detEl - im.solar.el;
+        im.sunYaw = wrap180(d.frameAz - im.solar.az);
+        found++;
+      } else { im.resid=null; im.sunYaw=null; }
+    }catch(e){ im.det=null; im.resid=null; im.sunYaw=null; }
+    n++;
+    if(n%3===0||n===cand.length){ setStatus(`Detecting the sun… ${n}/${cand.length}`,'progress',100*n/cand.length); await sleep(0); }
+  }
+  $('runSunBtn').disabled=false;
+  applyGate();
+  chooseInitialMode();
+  renderRegistration();
+  setStatus(`Sun located in ${found} of ${cand.length} frame(s); ${S.images.filter(i=>i.status==='accepted').length} passed the residual gate.`,'success');
+  setTimeout(hideStatus,3000);
+}
+
+function applyGate(){
+  const gate=parseFloat($('residGate').value)||1;
+  for(const im of S.images){
+    if(im.sunYaw!=null && im.resid!=null && Math.abs(im.resid)<=gate){
+      im.yaw=im.sunYaw; im.yawSource='sun'; im.status='accepted';
+      im.yawConf=Math.max(0, Math.min(1, 1-Math.abs(im.resid)/gate));
+    } else if(im.sunYaw!=null){
+      im.yaw=null; im.yawSource=null; im.status='gated'; im.yawConf=0;
+    } else if(im.solar){
+      im.yaw=null; im.yawSource=null; im.status='failed'; im.yawConf=0;
+    } else { im.status='nogeom'; }
+  }
+}
+function reinstateAll(){
+  for(const im of S.images) if(im.status==='gated'){ im.yaw=im.sunYaw; im.yawSource='sun'; im.status='accepted'; im.yawConf=0.1; }
+  renderRegistration();
+  setStatus('Gated frames reinstated. Their headings carry the elevation residual shown in the table — treat them as provisional.','progress');
+}
+
+async function runTerrainRegistration(){
+  const all=S.images.filter(i=>i.w>0);
+  if(!all.length){ setStatus('Nothing loaded.','error'); return; }
+  const elHi=parseFloat($('terrHi').value), elLo=parseFloat($('terrLo').value);
+  const W=Math.min(720, parseInt($('detWidth').value,10));
+  const maskAlpha=$('alphaSel').value==='mask';
+  $('runTerrBtn').disabled=true;
+
+  /* Anchor PER DATASET. Terrain correlation only means anything between
+     frames that show the same scene, so a single global anchor would
+     silently produce nonsense the moment two folders come from different
+     sites. Within a folder, the frame whose sun solution has the smallest
+     elevation residual becomes the anchor and carries its absolute heading
+     to every other frame there.                                          */
+  const groups=new Map();
+  for(const im of all){ if(!groups.has(im.dataset)) groups.set(im.dataset,[]); groups.get(im.dataset).push(im); }
+  const anchors=[]; const skipped=[];
+  let done=0, total=all.length;
+
+  for(const [ds, list] of groups){
+    const acc=list.filter(i=>i.status==='accepted' && i.resid!=null);
+    const anchor = acc.length ? acc.reduce((a,b)=>Math.abs(a.resid)<=Math.abs(b.resid)?a:b) : list[0];
+    let sigA=null;
+    try{ sigA=terrainStrip(await getPixels(anchor, W), anchor, elHi, elLo, maskAlpha); }catch(e){}
+    if(!sigA){ skipped.push(ds); done+=list.length; continue; }
+    anchors.push({ds, name:anchor.name, absolute:anchor.yaw!=null});
+    for(const im of list){
+      try{
+        const sig=terrainStrip(await getPixels(im, W), im, elHi, elLo, maskAlpha);
+        if(!sig){ im.terrainYaw=null; im.terrainConf=null; }
+        else{
+          const nCols=Math.min(sigA.length, sig.length)/3|0;
+          const {shiftDeg, conf}=xcorrShift(sigA, sig, nCols, im.azSpan);
+          im.terrainShift=shiftDeg; im.terrainConf=conf; im.terrainAnchorName=anchor.name;
+          // Under the convention above (frame azimuth = bearing + yaw), content
+          // displaced by shiftDeg means this frame's yaw is the anchor's PLUS that
+          // shift. Checked against the sun on nine frames spanning a 71° rotation:
+          // agreement 0.00–0.43°, and the opposite sign is wrong by twice the shift.
+          im.terrainYaw = (anchor.yaw!=null) ? wrap180(anchor.yaw + shiftDeg) : null;
+        }
+      }catch(e){ im.terrainYaw=null; }
+      done++;
+      if(done%3===0||done===total){ setStatus(`Cross-correlating terrain… ${done}/${total}`,'progress',100*done/total); await sleep(0); }
+    }
+  }
+  $('runTerrBtn').disabled=false;
+  S.terrainAnchor=anchors.map(a=>`${shortName(a.ds)}→${a.name}${a.absolute?'':' (relative only)'}`).join('; ');
+  const noAbs=anchors.filter(a=>!a.absolute).map(a=>shortName(a.ds));
+  // fill in frames the sun could not register
+  let filled=0;
+  for(const im of S.images){
+    if(im.status!=='accepted' && im.terrainYaw!=null && im.terrainConf>2.5){
+      im.yaw=im.terrainYaw; im.yawSource='terrain'; im.status='accepted'; im.yawConf=0.5; filled++;
+    }
+  }
+  renderRegistration();
+  const dis=disagreementStats();
+  let msg=`Terrain cross-correlation complete: ${anchors.length} dataset(s) anchored.`;
+  if(filled) msg+=` ${filled} frame(s) the sun could not register now have a terrain-derived heading.`;
+  if(dis) msg+=` Where both methods ran, they agree to a median of ${fmt(dis.med,2)}° (worst ${fmt(dis.max,2)}°).`;
+  setStatus(msg,'success');
+  let note='';
+  if(noAbs.length) note+=`<div class="note note-warn"><strong>Relative only in ${noAbs.map(esc).join(', ')}.</strong> No frame in those folders has a sun-derived heading, so terrain correlation could align them to each other but not to true north. Register one frame there against the sun, or set a heading by hand.</div>`;
+  if(skipped.length) note+=`<div class="note note-warn"><strong>Skipped ${skipped.map(esc).join(', ')}</strong> — no usable terrain between ${elHi}° and ${elLo}° elevation. Those rows are masked, transparent, or outside the frame.</div>`;
+  if(dis && dis.max>5){
+    note+=`<div class="note note-warn"><strong>The two methods disagree on some frames</strong> — worst ${fmt(dis.max,2)}°, median ${fmt(dis.med,2)}°. Where terrain and sun diverge by more than a few degrees the sun detection has almost certainly locked onto bright cloud rather than the sun; the Δ methods column marks them. Trust the terrain there, or tighten the residual gate.</div>`;
+  } else if(dis){
+    note+=`<div class="note note-ok"><strong>The two methods agree</strong> to a median of ${fmt(dis.med,2)}° (worst ${fmt(dis.max,2)}°) across ${dis.n} frames. Astronomy and scene content are entirely independent, so agreement at this level is strong evidence that both are right.</div>`;
+  }
+  note+=`<div class="note note-info">Anchors: ${esc(S.terrainAnchor)||'none'}. Terrain headings are propagated from each folder's own anchor — correlating frames from different sites would be meaningless, so it is not attempted.</div>`;
+  $('regNote').innerHTML=note;
+}
+
+function disagreementStats(){
+  const d=[];
+  for(const im of S.images){
+    if(im.sunYaw!=null && im.terrainYaw!=null && im.status!=='failed')
+      d.push(Math.abs(wrap180(im.sunYaw-im.terrainYaw)));
+  }
+  if(d.length<3) return null;
+  return {n:d.length, med:median(d), max:Math.max(...d)};
+}
+
+/* Stability is a property of ONE capture, not of a library. Pooling folders
+   would report a "rotating camera" whenever two datasets simply happen to
+   point different ways, so every statistic below is computed per dataset. */
+function datasetStability(){
+  const out=[];
+  const groups=new Map();
+  for(const im of S.images){ if(!groups.has(im.dataset)) groups.set(im.dataset,[]); groups.get(im.dataset).push(im); }
+  for(const [ds,list] of groups){
+    const acc=list.filter(i=>i.status==='accepted' && i.yaw!=null);
+    if(acc.length<2){ out.push({ds,n:acc.length,med:acc.length?acc[0].yaw:null,sd:null,range:null,within2:null,gps:positionSpreadMetres(list),verdict:'insufficient'}); continue; }
+    const yaws=acc.map(i=>i.yaw);
+    const med=circMedian(yaws), sd=circSD(yaws,med);
+    const devs=yaws.map(y=>wrap180(y-med));
+    const range=Math.max(...devs)-Math.min(...devs);
+    const gps=positionSpreadMetres(list);
+    const within2=yaws.filter(y=>Math.abs(wrap180(y-med))<2).length/yaws.length;
+    const verdict = gps>25 ? 'roving' : (sd<2 ? 'stable' : 'rotating');
+    out.push({ds,n:acc.length,med,sd,range,within2,gps,verdict});
+  }
+  return out;
+}
+function chooseInitialMode(){
+  S.stability=datasetStability();
+  const usable=S.stability.filter(s=>s.sd!=null);
+  if(!usable.length) return;
+  const allStable=usable.every(s=>s.verdict==='stable');
+  S.consensusByDs={};
+  for(const st of S.stability) if(st.med!=null) S.consensusByDs[st.ds]=st.med;
+  $('consVal').value = usable.length===1 ? fmt(usable[0].med,2)
+    : usable.map(s=>shortName(s.ds)+': '+fmt(s.med,2)).join(', ');
+  $('consVal').readOnly = usable.length>1;
+  $('regMode').value = allStable ? 'consensus' : 'perframe';
+  applyRegMode(true);
+}
+function positionSpreadMetres(list){
+  const pts=(list||S.images).filter(i=>i.lat!=null);
+  if(pts.length<2) return 0;
+  const las=pts.map(p=>p.lat), los=pts.map(p=>p.lon);
+  const dLat=(Math.max(...las)-Math.min(...las))*111320;
+  const dLon=(Math.max(...los)-Math.min(...los))*111320*Math.cos(rad(las[0]));
+  return Math.hypot(dLat,dLon);
+}
+
+function applyRegMode(quiet){
+  const mode=$('regMode').value;
+  $('windowFlds').style.display = mode==='window' ? '' : 'none';
+  const acc=S.images.filter(i=>i.status==='accepted' && (i.sunYaw!=null||i.terrainYaw!=null));
+  if(mode==='perframe'){
+    for(const im of S.images){
+      if(im.status==='accepted') im.yaw = im.sunYaw!=null && im.yawSource!=='terrain' ? im.sunYaw : im.terrainYaw;
+      if(im.yawSource==='consensus') im.yawSource = im.sunYaw!=null?'sun':'terrain';
+    }
+  } else if(mode==='consensus'){
+    // one consensus per dataset — a single number across folders would be meaningless
+    const single=parseFloat($('consVal').value);
+    const groups=new Map();
+    for(const im of S.images){ if(!groups.has(im.dataset)) groups.set(im.dataset,[]); groups.get(im.dataset).push(im); }
+    S.consensusByDs={};
+    for(const [ds,list] of groups){
+      const cand=list.filter(i=>i.status==='accepted'&&i.yaw!=null).map(i=>i.yaw);
+      let c = (groups.size===1 && isFinite(single)) ? single : circMedian(cand);
+      if(c==null) continue;
+      S.consensusByDs[ds]=c;
+      for(const im of list) if(im.status==='accepted'||im.status==='gated'){ im.yaw=c; im.yawSource='consensus'; if(im.status==='gated') im.status='accepted'; }
+    }
+    S.consensus = groups.size===1 ? Object.values(S.consensusByDs)[0] : null;
+  } else if(mode==='window'){
+    const r=($('windowRange').value||'').match(/(\d+)\s*[-–]\s*(\d+)/);
+    if(!r){ setStatus('Give the stable window as a frame range, for example 34-101.','error'); return; }
+    const a=+r[1], b=+r[2];
+    const inWin=S.images.filter(im=>im.frameNo>=a&&im.frameNo<=b&&im.yaw!=null&&im.status==='accepted');
+    if(inWin.length<2){ setStatus('That window contains fewer than two registered frames.','error'); return; }
+    const c=circMedian(inWin.map(i=>i.yaw));
+    S.consensus=c; $('consVal').value=fmt(c,2);
+    for(const im of S.images){
+      if(im.frameNo>=a&&im.frameNo<=b){ if(im.status!=='failed'&&im.status!=='nogeom'){ im.yaw=c; im.yawSource='consensus'; im.status='accepted'; } }
+      else { im.status = (im.status==='nogeom')?'nogeom':'excluded'; im.yaw=null; im.yawSource=null; }
+    }
+  }
+  renderRegistration();
+  if(!quiet) setStatus('Registration mode applied.','success'), setTimeout(hideStatus,1500);
+}
+
+function autoStableWindow(){
+  const acc=S.images.filter(i=>i.sunYaw!=null).sort((a,b)=>(a.utcMs||0)-(b.utcMs||0));
+  if(acc.length<5){ setStatus('Not enough sun-registered frames to look for a stable window.','error'); return; }
+  const tol=2.0;
+  let bestA=0,bestB=0,bestLen=0;
+  for(let a=0;a<acc.length;a++){
+    for(let b=a+2;b<acc.length;b++){
+      const seg=acc.slice(a,b+1).map(i=>i.sunYaw);
+      const m=circMedian(seg);
+      if(seg.every(y=>Math.abs(wrap180(y-m))<=tol)){ if(b-a+1>bestLen){ bestLen=b-a+1; bestA=a; bestB=b; } }
+      else break;
+    }
+  }
+  if(bestLen<3){ setStatus('No run of three or more consecutive frames holds a heading within 2°. This capture never settled — per-frame registration is the only honest option.','error'); return; }
+  const fa=acc[bestA].frameNo, fb=acc[bestB].frameNo;
+  $('windowRange').value=`${fa}-${fb}`;
+  $('regMode').value='window';
+  const dropped=acc.length-bestLen;
+  setStatus(`Longest stable run: frames ${fa}–${fb} (${bestLen} of ${acc.length}), holding a heading within 2°. ${dropped} frame(s) fall outside it. Press Apply to use it — but note that excluding them is a data decision, not a formatting one.`,'progress');
+  applyRegMode(true);
+}
+
+/* ═══════════════ REGISTRATION RENDERING ═══════════════ */
+function renderRegistration(){
+  const byDs=new Map();
+  S.images.slice().sort((a,b)=>(a.utcMs||0)-(b.utcMs||0)).forEach(im=>{
+    const k=byDs.get(im.dataset)||0; byDs.set(im.dataset,k+1); im.frameNo=k+1; });
+  $('regResultCard').style.display='';
+  renderRegStats(); drawTrace(); renderRegTable(); renderFilmstrip(); renderStabilityNote();
+}
+function renderRegStats(){
+  const all=S.images.filter(i=>i.solar);
+  const acc=S.images.filter(i=>i.status==='accepted'&&i.yaw!=null);
+  const det=S.images.filter(i=>i.det);
+  const res=S.images.filter(i=>i.resid!=null&&i.status==='accepted').map(i=>i.resid);
+  const yaws=acc.map(i=>i.yaw);
+  const med=yaws.length?circMedian(yaws):null;
+  const sd=yaws.length?circSD(yaws,med):null;
+  const dis=disagreementStats();
+  $('regStats').innerHTML=`
+   <div class="stat"><div class="k">Sun located</div><div class="v">${det.length}<span class="u">/${all.length}</span></div></div>
+   <div class="stat"><div class="k">Registered</div><div class="v">${acc.length}<span class="u">/${all.length}</span></div></div>
+   <div class="stat"><div class="k">Elevation residual</div><div class="v">${res.length?fmt(median(res),2):'—'}<span class="u">° median</span></div></div>
+   <div class="stat"><div class="k">Heading</div><div class="v">${med!=null?fmt(med,2):'—'}<span class="u">° median</span></div></div>
+   <div class="stat"><div class="k">Heading spread</div><div class="v">${sd!=null?fmt(sd,2):'—'}<span class="u">° SD</span></div></div>
+   ${dis?`<div class="stat"><div class="k">Sun vs terrain</div><div class="v">${fmt(dis.med,2)}<span class="u">° median</span></div></div>`:''}`;
+}
+function renderStabilityNote(){
+  const el=$('stabilityNote');
+  const st=datasetStability();
+  S.stability=st;
+  if(!st.length){ el.innerHTML=''; return; }
+  el.innerHTML=st.map(d=>{
+    const nm=esc(shortName(d.ds));
+    if(d.verdict==='insufficient')
+      return `<div class="note note-warn"><strong>${nm}</strong> — only ${d.n} registered frame(s), too few to say anything about mount stability.</div>`;
+    if(d.verdict==='roving')
+      return `<div class="note note-info"><strong>${nm} — roving capture.</strong> The camera moved ${fmt(d.gps,0)} m and the heading spans ${fmt(d.range,0)}°. A single consensus heading would be meaningless here; per-frame registration is the only correct choice and is what has been applied.</div>`;
+    if(d.verdict==='stable')
+      return `<div class="note note-ok"><strong>${nm} — stable mount.</strong> The heading holds to ${fmt(d.sd,2)}° across ${d.n} frames (${fmt(100*d.within2,0)}% within 2° of the median ${fmt(d.med,2)}°) while the camera stayed within ${fmt(d.gps,0)} m. A single consensus heading is well supported.</div>`;
+    return `<div class="note note-warn"><strong>${nm} — the camera turned during this capture.</strong> Position held to ${fmt(d.gps,0)} m but the heading spans ${fmt(d.range,0)}° (SD ${fmt(d.sd,2)}°, only ${fmt(100*d.within2,0)}% within 2° of the median). This is a fixed position with a rotating camera — the case no consensus heading can describe. Use per-frame registration, or find the stable window and be explicit about the frames you drop. Elevation profiles are unaffected either way, because they are rotation-invariant; column profiles, grid statistics and any azimuthal claim are not.</div>`;
+  }).join('');
+}
+function drawTrace(){
+  const c=$('traceCanvas'), g=c.getContext('2d');
+  const W=c.width, H=c.height;
+  g.clearRect(0,0,W,H); g.fillStyle='#fff'; g.fillRect(0,0,W,H);
+  const pts=S.images.filter(i=>i.sunYaw!=null||i.terrainYaw!=null).sort((a,b)=>(a.utcMs||0)-(b.utcMs||0));
+  if(pts.length<2){ g.fillStyle='#6b7a8d'; g.font='13px Inter,sans-serif'; g.fillText('Run a registration to see the heading trace.',14,26); return; }
+  const L=54,R=14,T=16,B=30;
+  const t0=pts[0].utcMs||0, t1=pts[pts.length-1].utcMs||1;
+  const span=Math.max(1,t1-t0);
+  const vals=[]; pts.forEach(p=>{ if(p.sunYaw!=null) vals.push(p.sunYaw); if(p.terrainYaw!=null) vals.push(p.terrainYaw); });
+  const ref=circMedian(vals);
+  const rel=v=>wrap180(v-ref);
+  const rs=vals.map(rel);
+  let lo=Math.min(...rs), hi=Math.max(...rs);
+  if(hi-lo<4){ const m=(hi+lo)/2; lo=m-2; hi=m+2; }
+  const pad=(hi-lo)*0.12; lo-=pad; hi+=pad;
+  const X=t=>L+((t-t0)/span)*(W-L-R);
+  const Y=v=>T+(1-(rel(v)-lo)/(hi-lo))*(H-T-B);
+
+  // axes
+  g.strokeStyle='#dde8ed'; g.lineWidth=1; g.font='10px Inter,sans-serif'; g.fillStyle='#6b7a8d';
+  const nTick=6;
+  for(let i=0;i<=nTick;i++){
+    const v=lo+(hi-lo)*i/nTick, y=T+(1-i/nTick)*(H-T-B);
+    g.beginPath(); g.moveTo(L,y); g.lineTo(W-R,y); g.stroke();
+    g.fillText((ref+v>=0?'+':'')+ (ref+v).toFixed(1)+'°', 6, y+3);
+  }
+  // consensus band
+  if(S.consensus!=null && $('regMode').value!=='perframe'){
+    const y=Y(S.consensus);
+    g.strokeStyle='#1a9080'; g.lineWidth=2; g.setLineDash([6,4]);
+    g.beginPath(); g.moveTo(L,y); g.lineTo(W-R,y); g.stroke(); g.setLineDash([]);
+  }
+  // terrain series
+  g.strokeStyle='#2c5f7a'; g.lineWidth=1.4; g.beginPath(); let started=false;
+  pts.forEach(p=>{ if(p.terrainYaw==null){started=false;return;} const x=X(p.utcMs||0), y=Y(p.terrainYaw);
+    if(!started){ g.moveTo(x,y); started=true; } else g.lineTo(x,y); });
+  g.stroke();
+  // sun series
+  pts.forEach(p=>{
+    if(p.sunYaw==null) return;
+    const x=X(p.utcMs||0), y=Y(p.sunYaw);
+    const gated=p.status==='gated'||p.status==='excluded';
+    g.fillStyle= gated ? '#c0392b' : '#e8a33d';
+    g.beginPath(); g.arc(x,y,gated?2.4:3,0,Math.PI*2); g.fill();
+  });
+  // x labels
+  g.fillStyle='#6b7a8d'; g.font='10px Inter,sans-serif';
+  for(let i=0;i<=4;i++){
+    const t=t0+span*i/4, x=X(t);
+    const d=new Date(t + (S.tz||0)*3600*1000);
+    const lbl=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+':'+String(d.getUTCSeconds()).padStart(2,'0');
+    g.textAlign= i===0?'left':(i===4?'right':'center');
+    g.fillText(lbl, x, H-10);
+  }
+  g.textAlign='left';
+  g.fillText('local time →', L, H-1);
+}
+
+function renderRegTable(){
+  const showG=$('showGated').checked;
+  const rows=S.images.filter(i=>i.solar).filter(i=>showG||i.status==='accepted')
+    .sort((a,b)=>(a.utcMs||0)-(b.utcMs||0));
+  const t=$('regTbl');
+  t.querySelector('thead').innerHTML='<tr><th class="num">#</th><th>File</th><th>Time</th><th class="num">Sun el (computed)</th><th class="num">Sun el (measured)</th><th class="num">Residual</th><th class="num">Yaw from sun</th><th class="num">Yaw from terrain</th><th class="num">Δ methods</th><th class="num">Applied yaw</th><th>Source</th><th class="num">Prominence</th><th class="num">Width</th><th>Status</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(im=>{
+    const d=im.sunYaw!=null&&im.terrainYaw!=null?Math.abs(wrap180(im.sunYaw-im.terrainYaw)):null;
+    const cls=im.status==='accepted'?'':'gated';
+    return `<tr class="${cls} clickable" onclick="selectFrame(${im.id})">
+      <td class="num">${im.frameNo??''}</td><td>${esc(im.name)}</td>
+      <td>${im.dt?dtText(im).slice(11):'—'}</td>
+      <td class="num">${fmt(im.solar.el,2)}</td>
+      <td class="num">${im.det?fmt(im.det.detEl,2):'—'}</td>
+      <td class="num">${im.resid!=null?(im.resid>0?'+':'')+fmt(im.resid,2):'—'}</td>
+      <td class="num">${im.sunYaw!=null?(im.sunYaw>0?'+':'')+fmt(im.sunYaw,2):'—'}</td>
+      <td class="num">${im.terrainYaw!=null?(im.terrainYaw>0?'+':'')+fmt(im.terrainYaw,2):'—'}</td>
+      <td class="num" ${d!=null&&d>5?'style="color:var(--danger);font-weight:600"':''}>${d!=null?fmt(d,2):'—'}</td>
+      <td class="num"><strong>${im.yaw!=null?(im.yaw>0?'+':'')+fmt(im.yaw,2):'—'}</strong></td>
+      <td>${srcPill(im.yawSource)}</td>
+      <td class="num">${im.det?fmt(im.det.prom,1):'—'}</td>
+      <td class="num">${im.det?fmt(im.det.fwhm,2)+'°':'—'}</td>
+      <td>${statusPill(im.status)}</td></tr>`;
+  }).join('');
+}
+function srcPill(s){
+  if(!s) return '—';
+  const m={sun:'pill-sun',terrain:'pill-terrain',manual:'pill-manual',consensus:'pill-consensus'};
+  return `<span class="pill ${m[s]||'pill-gated'}">${s}</span>`;
+}
+function statusPill(s){
+  const m={accepted:['pill-consensus','accepted'],gated:['pill-gated','gated'],failed:['pill-fail','no sun'],excluded:['pill-gated','excluded'],nogeom:['pill-fail','no geometry'],pending:['pill-gated','pending']};
+  const [c,l]=m[s]||['pill-gated',s];
+  return `<span class="pill ${c}">${l}</span>`;
+}
+
+/* ═══════════════ VIEWER ═══════════════ */
+let VIEW={yawDrag:0, pitchDrag:0, fov:90, dragging:false, lx:0, ly:0};
+
+function renderFilmstrip(){
+  const el=$('filmstrip');
+  if(!S.images.length){ el.innerHTML='<div style="padding:.6rem;font-size:.78rem;color:var(--text-muted)">No frames loaded.</div>'; return; }
+  el.innerHTML=S.images.slice().sort((a,b)=>(a.utcMs||0)-(b.utcMs||0)).map(im=>{
+    const col= im.status==='accepted' ? (im.yawSource==='sun'?'#e8a33d':(im.yawSource==='terrain'?'#2c5f7a':'#1a9080'))
+             : (im.status==='gated'||im.status==='excluded' ? '#c0392b' : '#c9d3da');
+    return `<div class="fs-item ${S.sel===im.id?'active':''}" onclick="selectFrame(${im.id})">
+      <span class="fs-dot" style="background:${col}"></span>
+      <span class="fs-name" title="${esc(im.name)}">${esc(im.name)}</span></div>`;
+  }).join('');
+}
+function selectFrame(id){
+  S.sel=id;
+  renderFilmstrip();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.p==='view'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='p-view'));
+  drawViewer();
+}
+async function getBitmap(im, maxW){
+  const key=im.id+'@'+maxW;
+  if(S.bmpCache.has(key)) return S.bmpCache.get(key);
+  const scale=Math.min(1, maxW/im.w);
+  const w=Math.round(im.w*scale), h=Math.round(im.h*scale);
+  const bmp=await createImageBitmap(im.file,{resizeWidth:w,resizeHeight:h,resizeQuality:'high'});
+  if(S.bmpCache.size>=BMP_CACHE_MAX){ const k=S.bmpCache.keys().next().value; const b=S.bmpCache.get(k); b.close&&b.close(); S.bmpCache.delete(k); }
+  S.bmpCache.set(key,bmp);
+  return bmp;
+}
+
+async function drawViewer(){
+  const im=S.images.find(i=>i.id===S.sel) || S.images[0];
+  const c=$('viewCanvas'), g=c.getContext('2d');
+  if(!im){ g.clearRect(0,0,c.width,c.height); $('viewInfo').innerHTML=''; return; }
+  S.sel=im.id;
+  const mode=$('viewMode').value;
+  const applyReg=$('ovApply').value==='1' && im.yaw!=null;
+  const yaw = applyReg ? im.yaw : 0;
+
+  if(mode==='equirect'){ c.width=1440; c.height=Math.round(1440*im.h/im.w); }
+  else if(mode==='polar'){ c.width=900; c.height=900; }
+  else { c.width=1100; c.height=680; }
+  g.fillStyle='#0d1519'; g.fillRect(0,0,c.width,c.height);
+
+  const bmp=await getBitmap(im, 2048);
+  if(mode==='equirect'){
+    g.drawImage(bmp,0,0,c.width,c.height);
+    drawOverlaysEquirect(g,c,im,yaw,applyReg);
+  } else if(mode==='polar'){
+    await drawPolar(g,c,im,bmp,yaw);
+    drawOverlaysPolar(g,c,im,yaw,applyReg);
+  } else {
+    await drawRect(g,c,im,bmp,yaw);
+  }
+  renderViewInfo(im, applyReg);
+}
+
+/* Sign convention, fixed once here and used everywhere:
+     yaw  = frame azimuth of the sun − true azimuth of the sun
+     ⇒ true bearing = frame azimuth − yaw,  frame azimuth = bearing + yaw
+   Verified against nine frames spanning a 71° camera rotation: terrain-derived
+   and sun-derived headings agree to 0.00–0.43° under this convention.        */
+function bearingToXFrac(im, bearing, yaw){ return xAtFrameAz(im, bearing + yaw); }
+
+function drawOverlaysEquirect(g,c,im,yaw,applyReg){
+  const W=c.width,H=c.height;
+  const px=(elev)=>yAtElev(im,elev)*H;
+  g.lineWidth=1.5; g.font='12px Inter,sans-serif'; g.textBaseline='middle';
+
+  if($('ovGrid').checked){
+    // horizon
+    const yh=px(0);
+    if(yh>=0&&yh<=H){ g.strokeStyle='#7fd8ff'; g.setLineDash([]); g.beginPath(); g.moveTo(0,yh); g.lineTo(W,yh); g.stroke();
+      g.fillStyle='#7fd8ff'; g.fillText('horizon 0°', 6, yh-9); }
+    // elevation grid
+    g.strokeStyle='rgba(255,255,255,.22)'; g.setLineDash([3,5]);
+    for(let e=-60;e<=60;e+=15){ if(e===0) continue; const y=px(e); if(y<0||y>H) continue;
+      g.beginPath(); g.moveTo(0,y); g.lineTo(W,y); g.stroke();
+      g.fillStyle='rgba(255,255,255,.6)'; g.fillText(e+'°',4,y-8); }
+    g.setLineDash([]);
+    // bearing ticks — only meaningful once registered
+    const labels=applyReg?{0:'N',45:'NE',90:'E',135:'SE',180:'S',225:'SW',270:'W',315:'NW'}:{};
+    for(let b=0;b<360;b+=15){
+      const xf=bearingToXFrac(im,b,yaw); if(xf<0||xf>1) continue;
+      const x=xf*W, major=(b%45===0);
+      g.strokeStyle= major?'rgba(255,255,255,.55)':'rgba(255,255,255,.2)';
+      g.beginPath(); g.moveTo(x,0); g.lineTo(x, major?22:12); g.stroke();
+      if(major){ g.fillStyle='#fff'; g.textAlign='center';
+        g.fillText(applyReg?(labels[b]||b+'°'):(b+'°'), x, 32); g.textAlign='left'; }
+    }
+    if(!applyReg){
+      g.fillStyle='rgba(255,255,255,.75)'; g.font='12px Inter,sans-serif';
+      g.fillText('raw frame — horizontal axis is not a compass', 8, H-10);
+    }
+  }
+  if($('ovScat').checked && im.solar) drawScatContours(g,W,H,im,yaw,(az,el)=>{
+    const xf=bearingToXFrac(im,az,yaw); return [xf*W, yAtElev(im,el)*H];
+  });
+  if($('ovMask').checked && im.solar) drawMaskOverlayEquirect(g,W,H,im,yaw);
+  if($('ovSun').checked){
+    if(im.solar){
+      const xf=bearingToXFrac(im, im.solar.az, yaw);
+      marker(g, xf*W, yAtElev(im,im.solar.el)*H, '#e8a33d', 'computed sun');
+    }
+    if(im.det){ marker(g, im.det.xFrac*W, im.det.yFrac*H, '#ff4fa3', 'detected', true); }
+  }
+}
+function marker(g,x,y,col,label,cross){
+  g.save();
+  g.strokeStyle=col; g.lineWidth=2; g.beginPath(); g.arc(x,y,13,0,Math.PI*2); g.stroke();
+  if(cross){ g.beginPath(); g.moveTo(x-19,y); g.lineTo(x+19,y); g.moveTo(x,y-19); g.lineTo(x,y+19); g.stroke(); }
+  g.fillStyle=col; g.font='600 12px Inter,sans-serif'; g.textAlign='center';
+  g.fillText(label, x, y-20);
+  g.restore();
+}
+/* small circle on the sphere at fixed angular distance from the sun */
+function scatCirclePoints(sunAz,sunEl,theta,n){
+  const S0=dirVec(sunAz,sunEl);
+  // any vector not parallel to S0
+  const t=Math.abs(S0[2])<0.9?[0,0,1]:[1,0,0];
+  const U=norm(cross(t,S0)), V=cross(S0,U);
+  const out=[];
+  for(let i=0;i<=n;i++){
+    const a=2*Math.PI*i/n, ct=Math.cos(rad(theta)), st=Math.sin(rad(theta));
+    const p=[S0[0]*ct+(U[0]*Math.cos(a)+V[0]*Math.sin(a))*st,
+             S0[1]*ct+(U[1]*Math.cos(a)+V[1]*Math.sin(a))*st,
+             S0[2]*ct+(U[2]*Math.cos(a)+V[2]*Math.sin(a))*st];
+    out.push([wrap360(deg(Math.atan2(p[1],p[0]))), deg(Math.asin(clamp(p[2],-1,1)))]);
+  }
+  return out;
+}
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const norm=a=>{ const m=Math.hypot(...a)||1; return [a[0]/m,a[1]/m,a[2]/m]; };
+
+function drawScatContours(g,W,H,im,yaw,proj){
+  g.save(); g.lineWidth=1.4; g.font='11px Inter,sans-serif';
+  for(let th=30;th<=150;th+=30){
+    const pts=scatCirclePoints(im.solar.az,im.solar.el,th,240);
+    g.strokeStyle='rgba(158,255,196,.75)';
+    let prev=null;
+    g.beginPath();
+    for(const [az,el] of pts){
+      const [x,y]=proj(az,el);
+      if(x==null||!isFinite(x)||!isFinite(y)){ prev=null; continue; }
+      if(prev && Math.abs(x-prev[0])>W*0.5){ prev=[x,y]; g.moveTo(x,y); continue; }
+      if(!prev) g.moveTo(x,y); else g.lineTo(x,y);
+      prev=[x,y];
+    }
+    g.stroke();
+    const mid=proj(pts[0][0],pts[0][1]);
+    if(mid && isFinite(mid[0])){ g.fillStyle='rgba(158,255,196,.95)'; g.fillText('Θ '+th+'°', mid[0]+4, mid[1]-4); }
+  }
+  g.restore();
+}
+function drawMaskOverlayEquirect(g,W,H,im,yaw){
+  const exSun=parseFloat($('anSunEx').value)||0, elMin=parseFloat($('anElMin').value);
+  const step=4;
+  g.save(); g.fillStyle='rgba(192,57,43,.35)';
+  for(let y=0;y<H;y+=step){
+    const el=elevAtY(im,(y+0.5)/H);
+    for(let x=0;x<W;x+=step){
+      const frAz=frameAzAtX(im,(x+0.5)/W);
+      const bearing=frAz-yaw;
+      let masked = el<elMin;
+      if(!masked && im.solar && exSun>0) masked = angBetween(bearing,el,im.solar.az,im.solar.el)<exSun;
+      if(masked) g.fillRect(x,y,step,step);
+    }
+  }
+  g.restore();
+}
+
+async function drawPolar(g,c,im,bmp,yaw){
+  const N=c.width, R=N/2-10, cx=N/2, cy=N/2;
+  const tmp=document.createElement('canvas'); tmp.width=bmp.width; tmp.height=bmp.height;
+  const tc=tmp.getContext('2d',{willReadFrequently:true}); tc.drawImage(bmp,0,0);
+  const src=tc.getImageData(0,0,bmp.width,bmp.height).data;
+  const out=g.createImageData(N,N);
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    const dx=x-cx, dy=y-cy, r=Math.hypot(dx,dy);
+    const o=(y*N+x)*4;
+    if(r>R){ out.data[o+3]=0; continue; }
+    const el=90-(r/R)*90;
+    const bearing=wrap360(deg(Math.atan2(dx,-dy)));
+    const frAz=bearing+yaw;
+    const xf=xAtFrameAz(im,frAz), yf=yAtElev(im,el);
+    if(yf<0||yf>1){ out.data[o+3]=0; continue; }
+    const sx=clamp(Math.round(xf*bmp.width),0,bmp.width-1), sy=clamp(Math.round(yf*bmp.height),0,bmp.height-1);
+    const p=(sy*bmp.width+sx)*4;
+    out.data[o]=src[p]; out.data[o+1]=src[p+1]; out.data[o+2]=src[p+2]; out.data[o+3]=255;
+  }
+  g.putImageData(out,0,0);
+}
+function drawOverlaysPolar(g,c,im,yaw,applyReg){
+  const N=c.width, R=N/2-10, cx=N/2, cy=N/2;
+  const proj=(az,el)=>{ if(el<0) return [NaN,NaN]; const r=(90-el)/90*R, b=rad(az); return [cx+r*Math.sin(b), cy-r*Math.cos(b)]; };
+  g.save();
+  if($('ovGrid').checked){
+    g.strokeStyle='rgba(255,255,255,.25)'; g.setLineDash([3,5]);
+    for(let e=0;e<90;e+=15){ const r=(90-e)/90*R; g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.stroke(); }
+    g.setLineDash([]);
+    g.strokeStyle='#7fd8ff'; g.lineWidth=1.6; g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.stroke();
+    g.font='600 13px Inter,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    const lab=applyReg?{0:'N',90:'E',180:'S',270:'W'}:{0:'0°',90:'90°',180:'180°',270:'270°'};
+    for(const b in lab){ const [x,y]=proj(+b,-2); g.fillStyle='#fff'; g.fillText(lab[b], x, y); }
+  }
+  if($('ovScat').checked && im.solar) drawScatContours(g,N,N,im,yaw,proj);
+  if($('ovSun').checked && im.solar){ const [x,y]=proj(im.solar.az,im.solar.el); if(isFinite(x)) marker(g,x,y,'#e8a33d','computed sun'); }
+  if($('ovSun').checked && im.det){
+    const bearing=im.det.frameAz-yaw; const [x,y]=proj(bearing,im.det.detEl);
+    if(isFinite(x)) marker(g,x,y,'#ff4fa3','detected',true);
+  }
+  g.restore();
+}
+
+const rectCanvas=$('viewCanvas');
+rectCanvas.addEventListener('mousedown',e=>{ VIEW.dragging=true; VIEW.lx=e.clientX; VIEW.ly=e.clientY; });
+window.addEventListener('mouseup',()=>VIEW.dragging=false);
+rectCanvas.addEventListener('mousemove',e=>{
+  if(!VIEW.dragging||$('viewMode').value!=='rect') return;
+  VIEW.yawDrag -= (e.clientX-VIEW.lx)*0.18;
+  VIEW.pitchDrag = clamp(VIEW.pitchDrag + (e.clientY-VIEW.ly)*0.18, -85, 85);
+  VIEW.lx=e.clientX; VIEW.ly=e.clientY;
+  drawViewer();
+});
+rectCanvas.addEventListener('wheel',e=>{
+  if($('viewMode').value!=='rect') return;
+  e.preventDefault(); VIEW.fov=clamp(VIEW.fov+Math.sign(e.deltaY)*4, 25, 130); drawViewer();
+},{passive:false});
+
+async function drawRect(g,c,im,bmp,yaw){
+  const W=c.width,H=c.height;
+  const tmp=document.createElement('canvas'); tmp.width=bmp.width; tmp.height=bmp.height;
+  const tc=tmp.getContext('2d',{willReadFrequently:true}); tc.drawImage(bmp,0,0);
+  const src=tc.getImageData(0,0,bmp.width,bmp.height).data;
+  const out=g.createImageData(W,H);
+  const f=(W/2)/Math.tan(rad(VIEW.fov/2));
+  const cy=Math.cos(rad(VIEW.pitchDrag)), sy=Math.sin(rad(VIEW.pitchDrag));
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const vx=x-W/2, vy=y-H/2;
+    // camera-space ray, then pitch rotation
+    let dx=f, dy=vx, dz=-vy;
+    const ndz=dz*cy - dx*sy, ndx=dz*sy + dx*cy;
+    const m=Math.hypot(ndx,dy,ndz);
+    const el=deg(Math.asin(ndz/m));
+    const bearing=wrap360(VIEW.yawDrag + deg(Math.atan2(dy,ndx)));
+    const xf=xAtFrameAz(im, bearing+yaw), yf=yAtElev(im, el);
+    const o=(y*W+x)*4;
+    if(yf<0||yf>1){ out.data[o+3]=0; continue; }
+    const sx=clamp(Math.round(xf*bmp.width),0,bmp.width-1), sY=clamp(Math.round(yf*bmp.height),0,bmp.height-1);
+    const p=(sY*bmp.width+sx)*4;
+    out.data[o]=src[p]; out.data[o+1]=src[p+1]; out.data[o+2]=src[p+2]; out.data[o+3]=255;
+  }
+  g.putImageData(out,0,0);
+  const proj=(az,el)=>{
+    const v=dirVec(wrap360(az-VIEW.yawDrag), el);
+    let dx=v[0], dy=v[1], dz=v[2];
+    const rdx=dx*cy + dz*sy, rdz=dz*cy - dx*sy;
+    if(rdx<=0.02) return [NaN,NaN];
+    return [W/2 + f*dy/rdx, H/2 - f*rdz/rdx];
+  };
+  g.save();
+  if($('ovGrid').checked){
+    g.strokeStyle='#7fd8ff'; g.lineWidth=1.4; g.beginPath();
+    let started=false;
+    for(let b=0;b<=360;b+=2){ const [x,y]=proj(b,0); if(!isFinite(x)){started=false;continue;} if(!started){g.moveTo(x,y);started=true;} else g.lineTo(x,y); }
+    g.stroke();
+    g.font='600 12px Inter,sans-serif'; g.textAlign='center'; g.fillStyle='#fff';
+    const lab={0:'N',45:'NE',90:'E',135:'SE',180:'S',225:'SW',270:'W',315:'NW'};
+    for(const b in lab){ const [x,y]=proj(+b,0); if(isFinite(x)&&x>0&&x<W) g.fillText(lab[b],x,y-8); }
+  }
+  if($('ovScat').checked && im.solar) drawScatContours(g,W,H,im,yaw,proj);
+  if($('ovSun').checked && im.solar){ const [x,y]=proj(im.solar.az,im.solar.el); if(isFinite(x)) marker(g,x,y,'#e8a33d','computed sun'); }
+  g.restore();
+  g.fillStyle='rgba(255,255,255,.7)'; g.font='11px Inter,sans-serif'; g.textAlign='left';
+  g.fillText(`drag to look around · scroll to zoom · FOV ${Math.round(VIEW.fov)}°`, 10, H-10);
+}
+
+function renderViewInfo(im, applyReg){
+  const rows=[];
+  rows.push(['Frame', esc(im.name)]);
+  rows.push(['Dataset', esc(im.dataset)]);
+  if(im.dt) rows.push(['Local time', dtText(im)]);
+  if(im.lat!=null) rows.push(['Position', `${fmt(im.lat,5)}, ${fmt(im.lon,5)}${im.alt!=null?' · '+fmt(im.alt,0)+' m':''}${im.posManual?' (manual)':''}`]);
+  if(im.solar) rows.push(['Sun (computed)', `elevation ${fmt(im.solar.el,2)}° · azimuth ${fmt(im.solar.az,2)}° · air mass ${fmt(im.solar.airmass,2)}`]);
+  if(im.det) rows.push(['Sun (measured in frame)', `elevation ${fmt(im.det.detEl,2)}° · frame azimuth ${fmt(im.det.frameAz,2)}° · width ${fmt(im.det.fwhm,2)}°${im.det.saturated?' · saturated':''}`]);
+  if(im.resid!=null) rows.push(['Elevation residual', `${im.resid>0?'+':''}${fmt(im.resid,2)}° — the heading-independent check`]);
+  if(im.yaw!=null) rows.push(['Applied yaw', `${im.yaw>0?'+':''}${fmt(im.yaw,2)}° (${im.yawSource})`]);
+  if(im.terrainYaw!=null) rows.push(['Terrain-derived yaw', `${fmt(im.terrainYaw,2)}° · correlation ${fmt(im.terrainConf,1)}`]);
+  if(im.priorHeading!=null) rows.push(['Heading recorded in the file', fmt(im.priorHeading,2)+'°']);
+  rows.push(['Status', statusPill(im.status)]);
+  let extra='';
+  if(!applyReg && im.yaw!=null) extra='<div class="note note-warn" style="margin-top:.5rem">Showing the raw frame. The horizontal axis is the camera\'s own, not a compass.</div>';
+  else if(im.yaw==null) extra='<div class="note note-warn" style="margin-top:.5rem">This frame has no heading, so bearings cannot be drawn. Run a registration, or accept a terrain-derived heading.</div>';
+  $('viewInfo').innerHTML=`<table style="font-size:.8rem">${rows.map(r=>`<tr><td style="color:var(--text-muted);width:200px">${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>${extra}`;
+}
+
+/* ═══════════════ SCATTERING-ANGLE ANALYSIS ═══════════════ */
+async function runAnalysis(){
+  const frames=S.images.filter(i=>i.status==='accepted' && i.yaw!=null && i.solar);
+  if(!frames.length){ $('anNote').innerHTML='<div class="note note-err">No registered frames. Run a registration first — scattering angle is measured from the sun, so it needs a heading.</div>'; return; }
+  const mode=$('anMode').value, bin=parseFloat($('anBin').value)||15;
+  const sunEx=parseFloat($('anSunEx').value)||0, elMin=parseFloat($('anElMin').value);
+  const half=parseFloat($('anHalf').value)||3;
+  const W=parseInt($('anWidth').value,10);
+  const useW=$('anWeight').value==='1';
+  const maskAlpha=$('alphaSel').value==='mask';
+
+  const bins=new Map(); // key -> accumulator
+  const perFrame=[];
+  let n=0, totalPx=0, maskedPx=0;
+
+  for(const im of frames){
+    const px=await getPixels(im, W);
+    const {data,w,h}=px;
+    const local=new Map();
+    for(let y=0;y<h;y++){
+      const el=elevAtY(im,(y+0.5)/h);
+      if(el<elMin) continue;
+      const wgt = useW ? Math.max(0,Math.cos(rad(el))) : 1;
+      if(wgt<=0) continue;
+      for(let x=0;x<w;x++){
+        const p=(y*w+x)*4;
+        totalPx++;
+        if(maskAlpha && data[p+3]<128){ maskedPx++; continue; }
+        const bearing=frameAzAtX(im,(x+0.5)/w)-im.yaw;
+        const theta=angBetween(bearing,el,im.solar.az,im.solar.el);
+        if(sunEx>0 && theta<sunEx){ maskedPx++; continue; }
+        let key=null;
+        if(mode==='annuli') key=Math.floor(theta/bin)*bin;
+        else if(mode==='elev') key=Math.floor(el/bin)*bin;
+        else if(mode==='almucantar'){
+          if(Math.abs(el-im.solar.el)>half) continue;
+          const dAz=Math.abs(wrap180(bearing-im.solar.az));
+          key=Math.floor(dAz/bin)*bin;
+        } else if(mode==='principal'){
+          const dAz=Math.abs(wrap180(bearing-im.solar.az));
+          if(dAz>half && Math.abs(dAz-180)>half) continue;
+          key=Math.floor(theta/bin)*bin;
+        }
+        if(key==null) continue;
+        const r=data[p],g0=data[p+1],b=data[p+2];
+        acc(local,key,r,g0,b,wgt);
+        acc(bins,key,r,g0,b,wgt);
+      }
+    }
+    if($('anPerFrame').checked){
+      for(const [k,a] of local) perFrame.push({file:im.name,dataset:im.dataset,bin:k,...finish(a)});
+    }
+    n++;
+    if(n%2===0||n===frames.length){ setStatus(`Analysing… ${n}/${frames.length}`,'progress',100*n/frames.length); await sleep(0); }
+  }
+  const rows=[...bins.entries()].sort((a,b)=>a[0]-b[0]).map(([k,a])=>({bin:k,...finish(a)}));
+  S.analysis={mode,bin,rows,perFrame,frames:frames.length,
+    maskedPct: totalPx? 100*maskedPx/totalPx : 0, sunEx, elMin, useW};
+  $('anResCard').style.display='';
+  renderAnalysis(); drawPhase();
+  setStatus(`Analysed ${frames.length} registered frame(s) into ${rows.length} bins.`,'success');
+  setTimeout(hideStatus,2500);
+}
+function acc(map,key,r,g,b,w){
+  let a=map.get(key);
+  if(!a){ a={w:0,r:0,g:0,b:0,L:0,A:0,B:0,dark:0,n:0}; map.set(key,a); }
+  const lab=rgbToLab(r,g,b);
+  a.w+=w; a.r+=r*w; a.g+=g*w; a.b+=b*w;
+  a.L+=lab[0]*w; a.A+=lab[1]*w; a.B+=lab[2]*w;
+  a.dark+=Math.min(r,g,b)*w; a.n++;
+}
+function finish(a){
+  const w=a.w||1;
+  const R=a.r/w, G=a.g/w, Bl=a.b/w;
+  return {n:a.n, weight:a.w, R, G, B:Bl,
+    L:a.L/w, a:a.A/w, bStar:a.B/w,
+    C:Math.hypot(a.A/w, a.B/w),
+    rb:(R+Bl)>0?(R-Bl)/(R+Bl):0,
+    dark:a.dark/w};
+}
+function renderAnalysis(){
+  const A=S.analysis; const t=$('anTbl');
+  const label={annuli:'Scattering angle Θ',elev:'Elevation',almucantar:'Azimuth from sun',principal:'Scattering angle Θ'}[A.mode];
+  t.querySelector('thead').innerHTML=`<tr><th class="num">${label}</th><th class="num">Pixels</th><th class="num">L*</th><th class="num">a*</th><th class="num">b*</th><th class="num">C*</th><th class="num">R</th><th class="num">G</th><th class="num">B</th><th class="num">(R−B)/(R+B)</th><th class="num">Dark channel</th></tr>`;
+  t.querySelector('tbody').innerHTML=A.rows.map(r=>`<tr>
+    <td class="num">${r.bin}–${r.bin+A.bin}°</td><td class="num">${r.n.toLocaleString()}</td>
+    <td class="num">${fmt(r.L,2)}</td><td class="num">${fmt(r.a,2)}</td><td class="num">${fmt(r.bStar,2)}</td>
+    <td class="num">${fmt(r.C,2)}</td><td class="num">${fmt(r.R,1)}</td><td class="num">${fmt(r.G,1)}</td><td class="num">${fmt(r.B,1)}</td>
+    <td class="num">${fmt(r.rb,4)}</td><td class="num">${fmt(r.dark,1)}</td></tr>`).join('');
+  let note=`<div class="note note-info"><strong>${A.frames} frame(s), ${A.rows.length} bins.</strong> ${fmt(A.maskedPct,1)}% of sampled pixels were excluded (transparent, below ${A.elMin}° elevation, or within ${A.sunEx}° of the sun).`;
+  if(A.mode==='annuli'||A.mode==='principal'){
+    note+=` Bins near Θ=0° and Θ=180° cover far less solid angle than bins near Θ=90°, so their pixel counts are small and their means noisier — the <em>weight</em> column is the honest measure of how much sky each bin represents.`;
+  }
+  if(!A.useW) note+=` Solid-angle weighting is off, so pixels near the zenith are over-represented relative to the sky they actually cover.`;
+  note+='</div>';
+  $('anNote').innerHTML=note;
+}
+function drawPhase(){
+  const A=S.analysis; if(!A) return;
+  const c=$('phaseCanvas'), g=c.getContext('2d');
+  const W=c.width,H=c.height; g.clearRect(0,0,W,H); g.fillStyle='#fff'; g.fillRect(0,0,W,H);
+  const key={L:'L',b:'bStar',a:'a',C:'C',rb:'rb',dark:'dark'}[$('anMetric').value];
+  const rows=A.rows.filter(r=>r.n>0);
+  if(rows.length<2){ g.fillStyle='#6b7a8d'; g.fillText('Not enough bins to plot.',14,24); return; }
+  const xs=rows.map(r=>r.bin+A.bin/2), ys=rows.map(r=>r[key]);
+  const L=62,R=18,T=18,B=42;
+  const x0=Math.min(...xs), x1=Math.max(...xs);
+  let y0=Math.min(...ys), y1=Math.max(...ys);
+  if(y1-y0<1e-6){ y0-=1; y1+=1; }
+  const pad=(y1-y0)*0.12; y0-=pad; y1+=pad;
+  const X=v=>L+((v-x0)/((x1-x0)||1))*(W-L-R);
+  const Y=v=>T+(1-(v-y0)/((y1-y0)||1))*(H-T-B);
+  g.strokeStyle='#dde8ed'; g.font='11px Inter,sans-serif'; g.fillStyle='#6b7a8d';
+  for(let i=0;i<=5;i++){ const v=y0+(y1-y0)*i/5, y=Y(v);
+    g.beginPath(); g.moveTo(L,y); g.lineTo(W-R,y); g.stroke(); g.fillText(v.toFixed(2),8,y+3); }
+  for(let i=0;i<=6;i++){ const v=x0+(x1-x0)*i/6, x=X(v);
+    g.strokeStyle='#eef3f6'; g.beginPath(); g.moveTo(x,T); g.lineTo(x,H-B); g.stroke();
+    g.fillStyle='#6b7a8d'; g.textAlign='center'; g.fillText(v.toFixed(0)+'°',x,H-B+16); }
+  g.textAlign='left';
+  // weight-proportional markers, so thin bins read as thin
+  const wMax=Math.max(...rows.map(r=>r.weight));
+  g.strokeStyle='#2c5f7a'; g.lineWidth=2; g.beginPath();
+  rows.forEach((r,i)=>{ const x=X(r.bin+A.bin/2), y=Y(r[key]); i?g.lineTo(x,y):g.moveTo(x,y); });
+  g.stroke();
+  rows.forEach(r=>{ const x=X(r.bin+A.bin/2), y=Y(r[key]);
+    g.fillStyle='#1a9080'; g.beginPath(); g.arc(x,y, 2+5*Math.sqrt(r.weight/wMax),0,Math.PI*2); g.fill(); });
+  const axl={annuli:'scattering angle Θ (degrees from the sun)',elev:'elevation (degrees)',almucantar:'azimuth from the sun (degrees)',principal:'scattering angle Θ (degrees)'}[A.mode];
+  g.fillStyle='#1a2332'; g.font='600 12px Inter,sans-serif'; g.textAlign='center';
+  g.fillText(axl, (L+W-R)/2, H-8);
+  g.save(); g.translate(14,(T+H-B)/2); g.rotate(-Math.PI/2);
+  g.fillText($('anMetric').selectedOptions[0].textContent, 0, 0); g.restore();
+  g.textAlign='left'; g.font='11px Inter,sans-serif'; g.fillStyle='#6b7a8d';
+  g.fillText('marker area ∝ solid angle sampled', L+4, T+12);
+}
+
+/* ═══════════════ SOLAR-WINDOW MATCHING ═══════════════ */
+function runMatching(){
+  const ok=S.images.filter(i=>i.solar);
+  if(!ok.length){ $('mchNote').innerHTML='<div class="note note-err">No frames have solar geometry yet.</div>'; return; }
+  const elTol=parseFloat($('mchElTol').value), azTol=parseFloat($('mchAzTol').value);
+  const dsMap=new Map();
+  for(const im of ok){
+    if(!dsMap.has(im.dataset)) dsMap.set(im.dataset,[]);
+    dsMap.get(im.dataset).push(im);
+  }
+  const dsets=[...dsMap.entries()].map(([name,list])=>{
+    const els=list.map(i=>i.solar.el), azs=list.map(i=>i.solar.az);
+    const ams=list.map(i=>i.solar.airmass).filter(v=>v!=null);
+    const reg=list.filter(i=>i.status==='accepted').length;
+    return {name, n:list.length, list, reg,
+      elMin:Math.min(...els), elMax:Math.max(...els),
+      azMin:Math.min(...azs), azMax:Math.max(...azs),
+      amMin:ams.length?Math.min(...ams):null, amMax:ams.length?Math.max(...ams):null,
+      date: list[0].dt?`${list[0].dt.y}-${String(list[0].dt.mo).padStart(2,'0')}-${String(list[0].dt.d).padStart(2,'0')}`:'—'};
+  });
+  const pairs=[];
+  for(let i=0;i<dsets.length;i++) for(let j=i+1;j<dsets.length;j++){
+    let cnt=0;
+    for(const a of dsets[i].list) for(const b of dsets[j].list){
+      if(Math.abs(a.solar.el-b.solar.el)<=elTol && Math.abs(wrap180(a.solar.az-b.solar.az))<=azTol){ cnt++; break; }
+    }
+    const elOv=Math.min(dsets[i].elMax,dsets[j].elMax)-Math.max(dsets[i].elMin,dsets[j].elMin);
+    const azOv=Math.min(dsets[i].azMax,dsets[j].azMax)-Math.max(dsets[i].azMin,dsets[j].azMin);
+    pairs.push({a:i,b:j,matched:cnt,elOv,azOv});
+  }
+  S.matching={dsets,pairs,elTol,azTol};
+  renderMatching();
+}
+function renderMatching(){
+  const M=S.matching; $('mchCard').style.display='';
+  const t=$('dsTbl');
+  t.querySelector('thead').innerHTML='<tr><th>Dataset</th><th>Date</th><th class="num">Frames</th><th class="num">Registered</th><th class="num">Sun elevation</th><th class="num">Sun azimuth</th><th class="num">Air mass</th></tr>';
+  t.querySelector('tbody').innerHTML=M.dsets.map(d=>`<tr>
+    <td>${esc(d.name)}</td><td>${d.date}</td><td class="num">${d.n}</td><td class="num">${d.reg}</td>
+    <td class="num">${fmt(d.elMin,1)}–${fmt(d.elMax,1)}°</td>
+    <td class="num">${fmt(d.azMin,1)}–${fmt(d.azMax,1)}°</td>
+    <td class="num">${d.amMin!=null?fmt(d.amMin,2)+'–'+fmt(d.amMax,2):'—'}</td></tr>`).join('');
+  const ot=$('ovTbl');
+  ot.querySelector('thead').innerHTML='<tr><th></th>'+M.dsets.map(d=>`<th>${esc(shortName(d.name))}</th>`).join('')+'</tr>';
+  ot.querySelector('tbody').innerHTML=M.dsets.map((d,i)=>{
+    const cells=M.dsets.map((e,j)=>{
+      if(i===j) return '<td style="background:var(--bg-page)">—</td>';
+      const p=M.pairs.find(p=>(p.a===i&&p.b===j)||(p.a===j&&p.b===i));
+      if(!p||p.matched===0) return '<td style="color:var(--text-muted)">none</td>';
+      const frac=p.matched/Math.min(M.dsets[i].n,M.dsets[j].n);
+      const bg=`rgba(26,144,128,${clamp(frac,0.08,0.75)})`;
+      return `<td style="background:${bg}"><strong>${p.matched}</strong> frames</td>`;
+    }).join('');
+    return `<tr><th style="position:static">${esc(shortName(d.name))}</th>${cells}</tr>`;
+  }).join('');
+  const best=M.pairs.filter(p=>p.matched>0).sort((a,b)=>b.matched-a.matched)[0];
+  let note=`<div class="note ${best?'note-ok':'note-warn'}">`;
+  if(best) note+=`<strong>Closest solar match:</strong> ${esc(shortName(M.dsets[best.a].name))} and ${esc(shortName(M.dsets[best.b].name))} — ${best.matched} frame(s) share a solar position within ${M.elTol}° elevation and ${M.azTol}° azimuth. Those are the datasets you can compare without solar geometry confounding the result.`;
+  else note+=`<strong>No dataset pair overlaps</strong> within ${M.elTol}° elevation and ${M.azTol}° azimuth. Any comparison between them mixes a solar-geometry difference into whatever atmospheric difference you are trying to measure. Either widen the tolerance and say so, or restrict the comparison to metrics that are insensitive to solar position.`;
+  note+='</div>';
+  $('mchNote').innerHTML=note;
+}
+function shortName(n){ const p=n.split('/'); return p[p.length-1]||n; }
+
+/* ═══════════════ EXPORT ═══════════════ */
+function downloadBlob(blob, name){
+  const a=document.createElement('a'), u=URL.createObjectURL(blob);
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); }, 1200);
+}
+function todayStamp(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function csvCell(v){
+  if(v==null) return '';
+  const s=String(v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function toCsv(header, rows){
+  return header.join(',')+'\n'+rows.map(r=>r.map(csvCell).join(',')).join('\n');
+}
+
+const GEOM_HEADER=['filename','filename_stem','dataset','datetime_local','tz_assumed_hours','clock_offset_s',
+  'lat','lon','altitude_m','position_source','time_source',
+  'solar_elevation_deg','solar_azimuth_deg','solar_zenith_deg','air_mass','solar_declination_deg','equation_of_time_min',
+  'sun_detected','sun_frame_az_deg','sun_frame_el_deg','elev_residual_deg','detect_prominence','detect_fwhm_deg','saturated',
+  'yaw_offset_deg','yaw_source','yaw_confidence','yaw_consensus_deg','yaw_deviation_from_consensus_deg',
+  'terrain_yaw_deg','terrain_correlation','method_disagreement_deg','heading_recorded_in_file_deg',
+  'registration_status','iso','exposure_time_s','f_number','ev','canvas_w','canvas_h',
+  'projection','elev_top_deg','elev_bottom_deg','az_span_deg','geometry_source'];
+
+function geomRows(){
+  const inc=$('expGatedToo').checked;
+  const consMap=S.consensusByDs||{};
+  return S.images.filter(im=>inc||im.status==='accepted').map(im=>{
+    const ev=(im.exif.exposure&&im.exif.iso)?(Math.log2(1/im.exif.exposure)+Math.log2(100/im.exif.iso)):null;
+    const dis=(im.sunYaw!=null&&im.terrainYaw!=null)?Math.abs(wrap180(im.sunYaw-im.terrainYaw)):null;
+    return [im.name, stem(im.name), im.dataset, im.dt?dtText(im):'', S.tz, parseFloat($('clockOff').value)||0,
+      im.lat, im.lon, im.alt, im.posManual?'manual':(im.lat!=null?'exif':''), im.timeManual?'manual':(im.dt?'exif':''),
+      im.solar?r6(im.solar.el):'', im.solar?r6(im.solar.az):'', im.solar?r6(im.solar.zen):'',
+      im.solar?r6(im.solar.airmass):'', im.solar?r6(im.solar.decl):'', im.solar?r6(im.solar.eqTime):'',
+      im.det?1:0, im.det?r6(im.det.frameAz):'', im.det?r6(im.det.detEl):'',
+      im.resid!=null?r6(im.resid):'', im.det?r6(im.det.prom):'', im.det?r6(im.det.fwhm):'', im.det?(im.det.saturated?1:0):'',
+      im.yaw!=null?r6(im.yaw):'', im.yawSource||'', im.yawConf!=null?r6(im.yawConf):'',
+      consMap[im.dataset]!=null?r6(consMap[im.dataset]):'', (consMap[im.dataset]!=null&&im.yaw!=null)?r6(wrap180(im.yaw-consMap[im.dataset])):'',
+      im.terrainYaw!=null?r6(im.terrainYaw):'', im.terrainConf!=null?r6(im.terrainConf):'',
+      dis!=null?r6(dis):'', im.priorHeading!=null?r6(im.priorHeading):'',
+      im.status, im.exif.iso??'', im.exif.exposure??'', im.exif.fnumber??'', ev!=null?r6(ev):'',
+      im.w, im.h, im.proj, im.elevTop, im.elevBot, im.azSpan, im.geomSource||''];
+  });
+}
+const r6=v=>(v==null||!isFinite(v))?'':Math.round(v*1e6)/1e6;
+
+function downloadGeometryCsv(){
+  if(!S.images.length){ setStatus('Nothing to export.','error'); return; }
+  const rows=geomRows();
+  downloadBlob(new Blob([toCsv(GEOM_HEADER,rows)],{type:'text/csv'}), `sunsync_geometry_${todayStamp()}.csv`);
+  renderExportPreview(rows.length);
+}
+function downloadGeometryJson(){
+  const rows=geomRows();
+  const obj={tool:'SunSync 360', generated:new Date().toISOString(),
+    settings:{tz_hours:S.tz, clock_offset_s:parseFloat($('clockOff').value)||0,
+      detection_band_deg:parseFloat($('detBand').value), background_window_deg:parseFloat($('detBg').value),
+      residual_gate_deg:parseFloat($('residGate').value), registration_mode:$('regMode').value,
+      consensus_yaw_deg_by_dataset:S.consensusByDs??null, terrain_anchor:S.terrainAnchor??null},
+    columns:GEOM_HEADER,
+    frames:rows.map(r=>Object.fromEntries(GEOM_HEADER.map((k,i)=>[k,r[i]])))};
+  downloadBlob(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}), `sunsync_geometry_${todayStamp()}.json`);
+  renderExportPreview(rows.length);
+}
+function renderExportPreview(n){
+  const acc=S.images.filter(i=>i.status==='accepted').length;
+  const bySrc={};
+  S.images.forEach(i=>{ if(i.yawSource) bySrc[i.yawSource]=(bySrc[i.yawSource]||0)+1; });
+  const srcTxt=Object.entries(bySrc).map(([k,v])=>`${v} ${k}`).join(', ')||'none';
+  $('expPreview').innerHTML=`<div class="note note-ok"><strong>${n} row(s) written</strong> — ${acc} registered. Heading provenance: ${srcTxt}. Every row carries its own <code>yaw_source</code> and <code>registration_status</code>, so any figure built from this can state how its frames were registered.</div>`;
+}
+function downloadIndexCsv(){
+  const ok=S.images.filter(i=>i.solar);
+  if(!ok.length){ setStatus('No solar geometry to index.','error'); return; }
+  const header=['dataset','filename','datetime_local','lat','lon','solar_elevation_deg','solar_azimuth_deg','air_mass','yaw_offset_deg','yaw_source','registration_status'];
+  const rows=ok.map(im=>[im.dataset,im.name,im.dt?dtText(im):'',im.lat,im.lon,
+    r6(im.solar.el),r6(im.solar.az),r6(im.solar.airmass),im.yaw!=null?r6(im.yaw):'',im.yawSource||'',im.status]);
+  downloadBlob(new Blob([toCsv(header,rows)],{type:'text/csv'}), `sunsync_solar-index_${todayStamp()}.csv`);
+}
+function downloadAnalysisCsv(){
+  const A=S.analysis; if(!A){ setStatus('Run an analysis first.','error'); return; }
+  const header=['bin_start_deg','bin_width_deg','mode','pixels','solid_angle_weight','L_star','a_star','b_star','C_star','R','G','B','redness_rb','dark_channel'];
+  const rows=A.rows.map(r=>[r.bin,A.bin,A.mode,r.n,r6(r.weight),r6(r.L),r6(r.a),r6(r.bStar),r6(r.C),r6(r.R),r6(r.G),r6(r.B),r6(r.rb),r6(r.dark)]);
+  let csv=toCsv(header,rows);
+  if(A.perFrame.length){
+    const h2=['file','dataset','bin_start_deg','pixels','solid_angle_weight','L_star','a_star','b_star','C_star','R','G','B','redness_rb','dark_channel'];
+    csv+='\n\n'+toCsv(h2, A.perFrame.map(r=>[r.file,r.dataset,r.bin,r.n,r6(r.weight),r6(r.L),r6(r.a),r6(r.bStar),r6(r.C),r6(r.R),r6(r.G),r6(r.B),r6(r.rb),r6(r.dark)]));
+  }
+  downloadBlob(new Blob([csv],{type:'text/csv'}), `sunsync_scattering_${A.mode}_${todayStamp()}.csv`);
+}
+
+/* ── minimal ZIP (stored, no compression) ─────────────────────── */
+const _CRCT=(()=>{ const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function _crc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=_CRCT[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function buildZipStore(files){
+  const enc=new TextEncoder(); const parts=[], central=[]; let off=0;
+  for(const f of files){
+    const name=enc.encode(f.name), data=f.data, crc=_crc32(data);
+    const lh=new Uint8Array(30+name.length), dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x504B0304,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true);
+    dv.setUint16(8,0,true); dv.setUint16(10,0,true); dv.setUint16(12,0,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true);
+    dv.setUint16(26,name.length,true); dv.setUint16(28,0,true);
+    lh.set(name,30); parts.push(lh,data);
+    const ch=new Uint8Array(46+name.length), cv=new DataView(ch.buffer);
+    cv.setUint32(0,0x504B0102,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
+    cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true); cv.setUint32(24,data.length,true);
+    cv.setUint16(28,name.length,true); cv.setUint32(42,off,true);
+    ch.set(name,46); central.push(ch);
+    off+=lh.length+data.length;
+  }
+  const cs=central.reduce((s,c)=>s+c.length,0);
+  const eo=new Uint8Array(22), ev=new DataView(eo.buffer);
+  ev.setUint32(0,0x504B0506,true); ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cs,true); ev.setUint32(16,off,true);
+  return new Blob([...parts,...central,eo],{type:'application/zip'});
+}
+
+async function exportRotated(){
+  const which=$('expWhich').value;
+  const list=S.images.filter(i=>i.yaw!=null && (which==='all'||i.status==='accepted'));
+  if(!list.length){ setStatus('No frames have a heading to rotate by.','error'); return; }
+  const snap=$('expSnap').value==='1';
+  const fmtType=$('expFmt').value;
+  const cv=document.createElement('canvas'), cx=cv.getContext('2d');
+  const files=[]; let n=0, maxSnapErr=0;
+  for(const im of list){
+    const bmp=await createImageBitmap(im.file);
+    const W=bmp.width, H=bmp.height;
+    // true north (bearing 0) sits at frame azimuth +yaw; shift it to column 0
+    const xf=wrap360(im.yaw)/im.azSpan;
+    let shift=xf*W;
+    if(snap){ const s2=Math.round(shift); maxSnapErr=Math.max(maxSnapErr, Math.abs(s2-shift)/W*im.azSpan); shift=s2; }
+    cv.width=W; cv.height=H; cx.clearRect(0,0,W,H);
+    if(snap){
+      const s=((shift%W)+W)%W;
+      cx.drawImage(bmp, s,0, W-s,H, 0,0, W-s,H);
+      cx.drawImage(bmp, 0,0, s,H, W-s,0, s,H);
+    } else {
+      cx.save(); cx.translate(-shift,0);
+      cx.drawImage(bmp,0,0); cx.drawImage(bmp,W,0); cx.restore();
+    }
+    bmp.close && bmp.close();
+    const blob=await new Promise(r=>cv.toBlob(r, fmtType, 0.95));
+    const buf=new Uint8Array(await blob.arrayBuffer());
+    const ext=fmtType==='image/png'?'.png':'.jpg';
+    files.push({name:stem(im.name)+'_north'+ext, data:buf});
+    n++;
+    setStatus(`Rotating… ${n}/${list.length}`,'progress',100*n/list.length); await sleep(0);
+  }
+  setStatus('Building ZIP…','progress');
+  downloadBlob(buildZipStore(files), `sunsync_north-aligned_${todayStamp()}.zip`);
+  let msg=`<div class="note note-ok"><strong>${files.length} frame(s) re-exported</strong>, rolled so column 0 is true north.`;
+  if(snap) msg+=` Integer-pixel snapping was on, so the roll is an exact lossless shift; the largest angular error introduced was ${fmt(maxSnapErr,4)}°, far below the registration uncertainty.`;
+  else msg+=` Sub-pixel mode resampled every pixel — declare this in any colour-fidelity claim.`;
+  if(fmtType==='image/jpeg') msg+=` These were written as JPEG, which re-encodes: for colour analysis prefer the sidecar, or export PNG.`;
+  msg+=` <strong>EXIF is not carried over</strong> by the browser's canvas encoder — keep the originals, and use the geometry CSV to carry position and time.</div>`;
+  $('expNote').innerHTML=msg;
+  setStatus(`Exported ${files.length} north-aligned frame(s).`,'success');
+}
+
+/* ═══════════════ MAPILLARY IMPORT ═══════════════ */
+async function mapillaryImport(){
+  const tok=$('mlyToken').value.trim(), ids=$('mlyIds').value.trim();
+  if(!tok||!ids){ $('mlyNote').innerHTML='<div class="note note-err">Both an access token and at least one ID are needed.</div>'; return; }
+  const sizeField=$('mlySize').value;
+  const fields=`id,captured_at,computed_compass_angle,compass_angle,computed_geometry,geometry,camera_type,width,height,${sizeField}`;
+  let imageIds=[];
+  try{
+    setStatus('Asking Mapillary what is in that sequence…','progress');
+    if(/^[0-9,\s]+$/.test(ids)) imageIds=ids.split(/[,\s]+/).filter(Boolean);
+    else{
+      const r=await fetch(`https://graph.mapillary.com/image_ids?sequence_id=${encodeURIComponent(ids)}&access_token=${encodeURIComponent(tok)}`);
+      const j=await r.json();
+      if(!j.data) throw new Error(j.error?.message||'no data returned');
+      imageIds=j.data.map(d=>d.id);
+    }
+    if(!imageIds.length) throw new Error('that sequence contains no images');
+    let n=0, added=0;
+    for(const id of imageIds){
+      const r=await fetch(`https://graph.mapillary.com/${id}?fields=${fields}&access_token=${encodeURIComponent(tok)}`);
+      const m=await r.json();
+      if(m.error) throw new Error(m.error.message);
+      const url=m[sizeField];
+      if(!url){ n++; continue; }
+      const ib=await fetch(url); const blob=await ib.blob();
+      const file=new File([blob], `mly_${id}.jpg`, {type:blob.type||'image/jpeg'});
+      file._relPath=`mapillary/${ids}/mly_${id}.jpg`;
+      const dims=await imageDims(file);
+      const geo=(m.computed_geometry||m.geometry||{}).coordinates||[null,null];
+      const t=new Date(m.captured_at);
+      const tz=S.tz??0;
+      const loc=new Date(t.getTime()+tz*3600*1000);
+      const im={ id:S.nextId++, file, name:file.name, dataset:`mapillary/${ids}`, rel:file._relPath,
+        w:dims.w, h:dims.h, exif:{make:'Mapillary',model:m.camera_type||''}, xmp:{},
+        lat:geo[1], lon:geo[0], alt:null,
+        dt:{y:loc.getUTCFullYear(),mo:loc.getUTCMonth()+1,d:loc.getUTCDate(),h:loc.getUTCHours(),mi:loc.getUTCMinutes(),s:loc.getUTCSeconds()},
+        proj:'equirect', elevTop:90, elevBot:-90, azSpan:360,
+        solar:null,det:null,terrainYaw:null,yaw:null,yawSource:null,yawConf:null,resid:null,status:'pending',
+        priorHeading: (m.computed_compass_angle!=null?m.computed_compass_angle:m.compass_angle),
+        fromMapillary:true };
+      applyAutoGeometry(im);
+      if($('mlyUseHeading').checked && im.priorHeading!=null){
+        // Mapillary's compass angle is the bearing of the frame's centre column
+        // Mapillary's compass angle is the true bearing of the frame's centre
+        // column, which sits at frame azimuth 180 ⇒ yaw = 180 − compass angle
+        im.yaw=wrap180(180 - im.priorHeading); im.yawSource='manual'; im.status='accepted'; im.yawConf=0.4;
+      }
+      S.images.push(im); added++;
+      n++;
+      setStatus(`Fetching from Mapillary… ${n}/${imageIds.length}`,'progress',100*n/imageIds.length);
+      await sleep(0);
+    }
+    sortImages(); recomputeSolar(true); renderLoadSummary(); renderLoadTable(); renderFilmstrip();
+    $('mlyNote').innerHTML=`<div class="note note-ok"><strong>${added} image(s) imported with their original Mapillary metadata.</strong> Where a computed compass angle was available it has been applied as a provisional heading, marked <span class="pill pill-manual">manual</span> — run the sun solver to check it against the sky rather than trusting it outright.</div>`;
+    setStatus(`Imported ${added} image(s) from Mapillary.`,'success');
+  }catch(e){
+    $('mlyNote').innerHTML=`<div class="note note-err"><strong>Mapillary request failed:</strong> ${esc(e.message)}. Check the token and the ID. If the browser blocked the request as cross-origin, the token may be missing the required scope.</div>`;
+    setStatus('Mapillary import failed.','error');
+  }
+}
+
+/* ═══════════════ INIT ═══════════════ */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    t.classList.add('active');
+    $('p-'+t.dataset.p).classList.add('active');
+    if(t.dataset.p==='view') drawViewer();
+  });
+});
+$('detWidth').addEventListener('change',()=>{
+  const w=parseInt($('detWidth').value,10);
+  $('detWidthHint').textContent=`${(360/w).toFixed(3)}° per pixel`;
+});
+$('expSnap').addEventListener('change',()=>{
+  const im=S.images[0];
+  const w=im?im.w:2880;
+  $('expSnapHint').textContent = $('expSnap').value==='1' ? `${(360/w).toFixed(3)}° steps on a ${w}px frame` : 'resamples every pixel';
+});
+buildTzOptions();
+$('detWidthHint').textContent=(360/1440).toFixed(3)+'° per pixel';
+renderFilmstrip();
+window.addEventListener('error', e=>{ setStatus('Something went wrong: '+e.message,'error'); });
+</script>
+</body>
+</html>
