@@ -370,12 +370,18 @@ code{background:var(--bg-page);padding:.08rem .3rem;border-radius:3px;font-size:
               <option value="equirect">Equirectangular</option>
               <option value="polar">Polar — zenith centred</option>
               <option value="rect">Rectilinear — drag to look around</option>
+              <option value="sunc">Sun-centred — Θ as concentric rings</option>
             </select></div>
           <div class="fld"><label>Overlays</label>
             <div style="display:flex;gap:.7rem;flex-wrap:wrap">
               <span class="chk"><input type="checkbox" id="ovSun" checked onchange="drawViewer()"><label for="ovSun">Sun</label></span>
               <span class="chk"><input type="checkbox" id="ovGrid" checked onchange="drawViewer()"><label for="ovGrid">Bearings</label></span>
-              <span class="chk"><input type="checkbox" id="ovScat" onchange="drawViewer()"><label for="ovScat">Scattering angle</label></span>
+              <span class="chk"><label for="ovScatMode">Scattering&nbsp;angle</label>
+                <select id="ovScatMode" onchange="drawViewer()" style="font-size:.78rem;padding:.15rem .3rem">
+                  <option value="off">off</option>
+                  <option value="lines">contour lines</option>
+                  <option value="bands">filled bands</option>
+                </select></span>
               <span class="chk"><input type="checkbox" id="ovMask" onchange="drawViewer()"><label for="ovMask">Active mask</label></span>
             </div></div>
           <div class="fld"><label>Registration applied</label>
@@ -1692,7 +1698,7 @@ async function drawViewer(){
   const yaw = applyReg ? im.yaw : 0;
 
   if(mode==='equirect'){ c.width=1440; c.height=Math.round(1440*im.h/im.w); }
-  else if(mode==='polar'){ c.width=900; c.height=900; }
+  else if(mode==='polar'||mode==='sunc'){ c.width=900; c.height=900; }
   else { c.width=1100; c.height=680; }
   g.fillStyle='#0d1519'; g.fillRect(0,0,c.width,c.height);
 
@@ -1703,6 +1709,10 @@ async function drawViewer(){
   } else if(mode==='polar'){
     await drawPolar(g,c,im,bmp,yaw);
     drawOverlaysPolar(g,c,im,yaw,applyReg);
+  } else if(mode==='sunc'){
+    if(!im.solar){ g.fillStyle='#9fb3c0'; g.font='14px Inter,sans-serif';
+      g.fillText('This frame has no solar position — the sun-centred view needs GPS and a timestamp.',40,60); }
+    else { await drawSunCentred(g,c,im,bmp,yaw); drawOverlaysSunCentred(g,c,im,yaw,applyReg); }
   } else {
     await drawRect(g,c,im,bmp,yaw);
   }
@@ -1747,24 +1757,31 @@ function drawOverlaysEquirect(g,c,im,yaw,applyReg){
       g.fillText('raw frame — horizontal axis is not a compass', 8, H-10);
     }
   }
-  if($('ovScat').checked && im.solar) drawScatContours(g,W,H,im,yaw,(az,el)=>{
-    const xf=bearingToXFrac(im,az,yaw); return [xf*W, yAtElev(im,el)*H];
-  });
+  const _sm=scatMode();
+  if(_sm!=='off' && im.solar){
+    if(_sm==='bands') drawScatBands(g,W,H,im,(x,y)=>{
+      const el=elevAtY(im,y/H), frAz=frameAzAtX(im,x/W);
+      return [frAz-yaw, el];
+    },30,3);
+    drawScatContours(g,W,H,im,yaw,(az,el)=>{
+      const xf=bearingToXFrac(im,az,yaw); return [xf*W, yAtElev(im,el)*H];
+    });
+  }
   if($('ovMask').checked && im.solar) drawMaskOverlayEquirect(g,W,H,im,yaw);
   if($('ovSun').checked){
     if(im.solar){
       const xf=bearingToXFrac(im, im.solar.az, yaw);
       marker(g, xf*W, yAtElev(im,im.solar.el)*H, '#e8a33d', 'computed sun');
     }
-    if(im.det){ marker(g, im.det.xFrac*W, im.det.yFrac*H, '#ff4fa3', 'detected', true); }
+    if(im.det){ marker(g, im.det.xFrac*W, im.det.yFrac*H, '#ff4fa3', 'detected', true, 22); }
   }
 }
-function marker(g,x,y,col,label,cross){
+function marker(g,x,y,col,label,cross,labelDy){
   g.save();
   g.strokeStyle=col; g.lineWidth=2; g.beginPath(); g.arc(x,y,13,0,Math.PI*2); g.stroke();
   if(cross){ g.beginPath(); g.moveTo(x-19,y); g.lineTo(x+19,y); g.moveTo(x,y-19); g.lineTo(x,y+19); g.stroke(); }
-  g.fillStyle=col; g.font='600 12px Inter,sans-serif'; g.textAlign='center';
-  g.fillText(label, x, y-20);
+  g.font='600 12px Inter,sans-serif'; g.textAlign='center';
+  haloText(g, label, x, y + (labelDy != null ? labelDy : -20), col);
   g.restore();
 }
 /* small circle on the sphere at fixed angular distance from the sun */
@@ -1783,9 +1800,134 @@ function scatCirclePoints(sunAz,sunEl,theta,n){
   }
   return out;
 }
+
+/* ═══════════ SUN-CENTRED PROJECTION ═══════════
+   Reproject the sphere so the SUN sits at the centre of the disk. Radius is then
+   the scattering angle itself and the annuli become concentric circles, which is
+   the coordinate system the analysis actually works in. Everything the metrics do
+   is radial in this view, so a forward-scattering lobe or a smoke halo reads as
+   structure around the centre rather than as a smear across a rectangle.
+   Θ = radius/R × Θmax, φ = angle around the sun; the direction is rebuilt on the
+   orthonormal basis (S, U, V) with S pointing at the sun.                        */
+function sunBasis(im){
+  const S0=dirVec(im.solar.az, im.solar.el);
+  const t=Math.abs(S0[2])<0.9?[0,0,1]:[1,0,0];
+  const U=norm(cross(t,S0)), V=cross(S0,U);
+  return [S0,U,V];
+}
+function sunDirAt(im, theta, phi){
+  const [S0,U,V]=sunBasis(im);
+  const ct=Math.cos(rad(theta)), st=Math.sin(rad(theta)), cp=Math.cos(phi), sp=Math.sin(phi);
+  const p=[S0[0]*ct+(U[0]*cp+V[0]*sp)*st, S0[1]*ct+(U[1]*cp+V[1]*sp)*st, S0[2]*ct+(U[2]*cp+V[2]*sp)*st];
+  return [wrap360(deg(Math.atan2(p[1],p[0]))), deg(Math.asin(clamp(p[2],-1,1)))];
+}
+/* inverse: a true (az,el) back to the sun-centred disk */
+function sunProject(im, az, el, cx, cy, R, thetaMax){
+  const [S0,U,V]=sunBasis(im);
+  const d=dirVec(az,el);
+  const cth=clamp(d[0]*S0[0]+d[1]*S0[1]+d[2]*S0[2],-1,1);
+  const th=deg(Math.acos(cth));
+  if(th>thetaMax) return [NaN,NaN];
+  const u=d[0]*U[0]+d[1]*U[1]+d[2]*U[2], v=d[0]*V[0]+d[1]*V[1]+d[2]*V[2];
+  const phi=Math.atan2(v,u), r=(th/thetaMax)*R;
+  return [cx+r*Math.cos(phi), cy+r*Math.sin(phi)];
+}
+async function drawSunCentred(g,c,im,bmp,yaw){
+  const N=c.width, R=N/2-34, cx=N/2, cy=N/2;
+  const thetaMax=180;
+  const tmp=document.createElement('canvas'); tmp.width=bmp.width; tmp.height=bmp.height;
+  const tc=tmp.getContext('2d',{willReadFrequently:true}); tc.drawImage(bmp,0,0);
+  const src=tc.getImageData(0,0,bmp.width,bmp.height).data;
+  const out=g.createImageData(N,N);
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    const dx=x-cx, dy=y-cy, r=Math.hypot(dx,dy), o=(y*N+x)*4;
+    if(r>R){ out.data[o+3]=0; continue; }
+    const [az,el]=sunDirAt(im, (r/R)*thetaMax, Math.atan2(dy,dx));
+    const xf=xAtFrameAz(im, az+yaw), yf=yAtElev(im, el);
+    if(yf<0||yf>1){ out.data[o+3]=0; continue; }
+    const sx=clamp(Math.round(xf*bmp.width),0,bmp.width-1), sy=clamp(Math.round(yf*bmp.height),0,bmp.height-1);
+    const p=(sy*bmp.width+sx)*4;
+    out.data[o]=src[p]; out.data[o+1]=src[p+1]; out.data[o+2]=src[p+2]; out.data[o+3]=255;
+  }
+  g.putImageData(out,0,0);
+}
+function drawOverlaysSunCentred(g,c,im,yaw,applyReg){
+  const N=c.width, R=N/2-34, cx=N/2, cy=N/2, thetaMax=180;
+  const ringR = th => (th/thetaMax)*R;
+  g.save();
+  if(scatMode()==='bands'){
+    for(let th=0; th<thetaMax; th+=60){
+      g.beginPath(); g.arc(cx,cy,ringR(th+30),0,Math.PI*2); g.arc(cx,cy,ringR(th),0,Math.PI*2,true);
+      g.fillStyle='rgba(158,255,196,.10)'; g.fill('evenodd');
+    }
+  }
+  if(scatMode()!=='off'){
+    g.strokeStyle='rgba(158,255,196,.8)'; g.lineWidth=1.3;
+    g.font='11px Inter,sans-serif'; g.textAlign='center';
+    for(let th=30; th<=150; th+=30){
+      g.beginPath(); g.arc(cx,cy,ringR(th),0,Math.PI*2); g.stroke();
+      haloText(g,'Θ '+th+'°', cx, cy-ringR(th)-4);
+    }
+  }
+  if($('ovGrid').checked){
+    // the horizon is a curve here, not a line — worth showing, because it is where
+    // the sky ends and it moves with the sun's elevation
+    g.strokeStyle='#7fd8ff'; g.lineWidth=1.6; g.beginPath();
+    let started=false;
+    for(let a=0;a<=360;a+=1){
+      const [x,y]=sunProject(im, a, 0, cx, cy, R, thetaMax);
+      if(!isFinite(x)){ started=false; continue; }
+      if(!started){ g.moveTo(x,y); started=true; } else g.lineTo(x,y);
+    }
+    g.stroke();
+    g.font='11px Inter,sans-serif'; g.textAlign='left';
+    haloText(g,'horizon', 10, N-44, '#7fd8ff');
+    if(applyReg){
+      g.font='600 12px Inter,sans-serif'; g.textAlign='center';
+      for(const [b,lab] of [[0,'N'],[90,'E'],[180,'S'],[270,'W']]){
+        const [x,y]=sunProject(im, b, 0, cx, cy, R, thetaMax);
+        if(isFinite(x)) haloText(g,lab,x,y-6,'#fff');
+      }
+    }
+  }
+  g.strokeStyle='rgba(255,255,255,.35)'; g.lineWidth=1;
+  g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.stroke();
+  if($('ovSun').checked) marker(g,cx,cy,'#e8a33d','sun');
+  g.fillStyle='rgba(255,255,255,.75)'; g.font='11px Inter,sans-serif'; g.textAlign='left';
+  g.fillText('sun-centred — radius is the scattering angle Θ, rim is the antisolar point', 10, N-28);
+  g.restore(); g.textAlign='left';
+}
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
 const norm=a=>{ const m=Math.hypot(...a)||1; return [a[0]/m,a[1]/m,a[2]/m]; };
 
+function scatMode(){ const e=$('ovScatMode'); return e?e.value:'off'; }
+/* Filled Θ bands, rasterised through whatever inverse projection the current view
+   uses. Drawing the bands rather than their outlines is what makes the shape of an
+   annulus legible: in an equirectangular frame it is not a ring at all but a
+   distorted lens, which is precisely why the bins have to be computed rather than
+   read off the picture by eye. */
+function drawScatBands(g,W,H,im,invProj,binDeg,step){
+  const bin=binDeg||30, st=step||3;
+  g.save();
+  for(let y=0;y<H;y+=st){
+    for(let x=0;x<W;x+=st){
+      const ae=invProj(x+st/2,y+st/2);
+      if(!ae) continue;
+      const th=angBetween(ae[0],ae[1],im.solar.az,im.solar.el);
+      const k=Math.floor(th/bin);
+      if(k%2) continue;                       // tint alternate bands only
+      g.fillStyle='rgba(158,255,196,.11)';
+      g.fillRect(x,y,st,st);
+    }
+  }
+  g.restore();
+}
+/* Labels sit on whatever the sky happens to be doing, so they carry their own
+   contrast rather than relying on it. */
+function haloText(g,t,x,y,col){
+  g.save(); g.lineWidth=3; g.strokeStyle='rgba(10,18,24,.75)';
+  g.strokeText(t,x,y); g.fillStyle=col||'rgba(158,255,196,.98)'; g.fillText(t,x,y); g.restore();
+}
 function drawScatContours(g,W,H,im,yaw,proj){
   g.save(); g.lineWidth=1.4; g.font='11px Inter,sans-serif';
   for(let th=30;th<=150;th+=30){
@@ -1802,7 +1944,7 @@ function drawScatContours(g,W,H,im,yaw,proj){
     }
     g.stroke();
     const mid=proj(pts[0][0],pts[0][1]);
-    if(mid && isFinite(mid[0])){ g.fillStyle='rgba(158,255,196,.95)'; g.fillText('Θ '+th+'°', mid[0]+4, mid[1]-4); }
+    if(mid && isFinite(mid[0])) haloText(g,'Θ '+th+'°', mid[0]+4, mid[1]-4);
   }
   g.restore();
 }
@@ -1857,7 +1999,16 @@ function drawOverlaysPolar(g,c,im,yaw,applyReg){
     const lab=applyReg?{0:'N',90:'E',180:'S',270:'W'}:{0:'0°',90:'90°',180:'180°',270:'270°'};
     for(const b in lab){ const [x,y]=proj(+b,-2); g.fillStyle='#fff'; g.fillText(lab[b], x, y); }
   }
-  if($('ovScat').checked && im.solar) drawScatContours(g,N,N,im,yaw,proj);
+  const _sm2=scatMode();
+  if(_sm2!=='off' && im.solar){
+    if(_sm2==='bands') drawScatBands(g,N,N,im,(x,y)=>{
+      const dx=x-cx, dy=y-cy, r=Math.hypot(dx,dy);
+      if(r>R) return null;
+      const el=90-(r/R)*90, bearing=wrap360(deg(Math.atan2(dx,-dy)));
+      return [bearing, el];
+    },30,3);
+    drawScatContours(g,N,N,im,yaw,proj);
+  }
   if($('ovSun').checked && im.solar){ const [x,y]=proj(im.solar.az,im.solar.el); if(isFinite(x)) marker(g,x,y,'#e8a33d','computed sun'); }
   if($('ovSun').checked && im.det){
     const bearing=im.det.frameAz-yaw; const [x,y]=proj(bearing,im.det.detEl);
@@ -1922,7 +2073,7 @@ async function drawRect(g,c,im,bmp,yaw){
     const lab={0:'N',45:'NE',90:'E',135:'SE',180:'S',225:'SW',270:'W',315:'NW'};
     for(const b in lab){ const [x,y]=proj(+b,0); if(isFinite(x)&&x>0&&x<W) g.fillText(lab[b],x,y-8); }
   }
-  if($('ovScat').checked && im.solar) drawScatContours(g,W,H,im,yaw,proj);
+  if(scatMode()!=='off' && im.solar) drawScatContours(g,W,H,im,yaw,proj);
   if($('ovSun').checked && im.solar){ const [x,y]=proj(im.solar.az,im.solar.el); if(isFinite(x)) marker(g,x,y,'#e8a33d','computed sun'); }
   g.restore();
   g.fillStyle='rgba(255,255,255,.7)'; g.font='11px Inter,sans-serif'; g.textAlign='left';
