@@ -283,11 +283,13 @@ code{background:var(--bg-page);padding:.08rem .3rem;border-radius:3px;font-size:
       <div class="fld"><label>Clock correction</label><input type="number" id="clockOff" value="0" step="1"><span class="hint">seconds added to EXIF time</span></div>
       <div class="fld"><label>Sun below this elevation</label><input type="number" id="minSunEl" value="-2" step="1"><span class="hint">degrees — frames excluded from solving</span></div>
       <button class="btn btn-primary btn-sm" onclick="recomputeSolar()">Recompute solar geometry</button>
+      <button class="btn btn-outline btn-sm" id="solveClockBtn" onclick="solveClockFromSun()" title="Find the sun in a sample of frames without trusting the clock, then solve for the clock offset that reconciles the measured elevation with the computed one.">Solve the clock from the sun</button>
     </div>
     <div class="note note-info" style="margin-top:.8rem">
       <strong>A degeneracy worth knowing about.</strong> A constant clock error and a constant heading error both shift the sun's apparent azimuth, and nothing in a single high-sun frame can tell them apart. Low-sun frames break the tie, because near sunrise and sunset the elevation changes fast enough that a clock error shows up in the elevation residual. If you have an evening or morning set from the same camera, register that one first and use its clock correction here.
     </div>
     <div id="clockAudit"></div>
+    <div id="clockSolve"></div>
   </div>
 
   <div class="card" id="solarCard" style="display:none">
@@ -1132,6 +1134,143 @@ function renderClockAudit(){
   el.innerHTML=h;
 }
 
+/* ═══════════════ SOLVING THE CLOCK FROM THE SUN (new in v1.2) ═══════════════
+   A wrong clock hides its own evidence. runSunRegistration() only looks at frames
+   whose COMPUTED elevation clears minSunEl, so if the clock is hours out the computed
+   sun is underground, no frame is a candidate, the detector never runs, and the tool
+   reports nothing rather than reporting a contradiction. That is how a Mapillary import
+   could sit at elevation −8° while the photograph plainly shows the sun ~50° up.
+
+   The way out is to measure the sun WITHOUT trusting the clock: search the whole sky
+   for the brightest prominent feature, take its elevation — which depends only on the
+   image and the projection — and then ask which clock offset makes the computed sun
+   agree. Elevation is the right observable because it is heading-independent.
+
+   Elevation alone is symmetric about solar noon, so a morning and an afternoon offset
+   fit equally well (near noon the two can be hours apart). Where a prior heading exists
+   — Mapillary supplies computed_compass_angle — the sun's AZIMUTH breaks the tie, so
+   azimuth is used as a tiebreak among offsets that fit the elevation equally well.
+
+   A whole-hour answer is the signature of a timezone fault rather than a drifting
+   camera clock, and an answer equal to minus the timezone offset specifically means the
+   capture's LOCAL wall-clock was ingested as though it were UTC — a known fault in some
+   Mapillary uploads. Both are named in the report rather than silently applied. */
+const _CLOCK_SAMPLE = 8;        // frames sampled across the set — enough to be sure, cheap enough to be quick
+const _CLOCK_MIN_PROM = 5;      // detection prominence below this is not confidently the sun
+
+async function solveClockFromSun(){
+  const btn=$('solveClockBtn'), out=$('clockSolve');
+  const pool=S.images.filter(i=>i.lat!=null&&i.lon!=null&&i.dt);
+  if(!pool.length){ out.innerHTML='<div class="note note-err"><strong>Nothing to solve from.</strong> Frames need a position and a timestamp before the sun can be computed at all.</div>'; return; }
+  btn.disabled=true;
+  const step=Math.max(1,Math.floor(pool.length/_CLOCK_SAMPLE));
+  const sample=[]; for(let i=0;i<pool.length&&sample.length<_CLOCK_SAMPLE;i+=step) sample.push(pool[i]);
+  const W=parseInt($('detWidth').value,10)||1024, maskAlpha=$('alphaSel').value==='mask';
+  const tz=S.tz??0;
+
+  // 1. measure the sun with no reference to the clock — search the whole sky
+  const obs=[];
+  for(let k=0;k<sample.length;k++){
+    const im=sample[k];
+    try{
+      const px=await getPixels(im, W);
+      const d=detectSun(px, im, 45, 46, parseFloat($('detBg').value)||30, maskAlpha);   // ≈ −1°…91°
+      if(d && d.prom>=_CLOCK_MIN_PROM){
+        const dd=im.dt;
+        obs.push({ im, detEl:d.detEl, frameAz:d.frameAz, prom:d.prom,
+                   baseUtc: Date.UTC(dd.y,dd.mo-1,dd.d,dd.h,dd.mi,dd.s) - tz*3600*1000 });
+      }
+    }catch(e){}
+    setStatus(`Looking for the sun… ${k+1}/${sample.length}`,'progress',100*(k+1)/sample.length);
+    await sleep(0);
+  }
+  btn.disabled=false; hideStatus();
+
+  if(obs.length<2){
+    out.innerHTML=`<div class="note note-warn"><strong>Could not find the sun confidently enough to solve the clock.</strong> ${obs.length} of ${sample.length} sampled frame(s) gave a prominent enough detection. This happens when the sun is behind cloud, outside the frame, or blown out across a large area. The clock cannot be solved from the sky here — set it from a low-sun set taken with the same camera instead.</div>`;
+    return;
+  }
+
+  // 2. score every candidate offset: coarse 15-minute grid over ±14 h, then refine to the minute
+  const score=off=>{
+    let se=0, sa=0, na=0;
+    for(const o of obs){
+      const sol=solarPos(new Date(o.baseUtc+off*1000), o.im.lat, o.im.lon);
+      se += (o.detEl-sol.el)**2;
+      if(o.im.priorHeading!=null){
+        const measured=wrap180(o.frameAz - sol.az), prior=wrap180(180 - o.im.priorHeading);
+        sa += wrap180(measured-prior)**2; na++;
+      }
+    }
+    return { off, elevRms:Math.sqrt(se/obs.length), azRms: na?Math.sqrt(sa/na):null, nAz:na };
+  };
+  const coarse=[]; for(let m=-14*60;m<=14*60;m+=15) coarse.push(score(m*60));
+  const bestEl=coarse.reduce((a,b)=>b.elevRms<a.elevRms?b:a);
+  const hasAz = bestEl.azRms!=null;
+
+  // 3. Elevation is symmetric about solar noon, so a morning and an afternoon offset can
+  //    fit it equally well; azimuth against a prior heading chooses the branch. Elevation
+  //    is also a WEAK clock constraint near noon — it moves ~0.06°/min there against
+  //    azimuth's ~0.4°/min — so where a prior heading exists the minute-level refinement
+  //    is done on azimuth. Elevation picks the branch; azimuth sharpens it.
+  const near=coarse.filter(c=>c.elevRms<=bestEl.elevRms+2.0);
+  let branch=bestEl, tiebreak=null;
+  if(hasAz && near.length>1){
+    const byAz=near.slice().sort((a,b)=>a.azRms-b.azRms);
+    if(Math.abs(byAz[0].off-bestEl.off)>1200){
+      branch=byAz[0];
+      tiebreak=`elevation alone fitted ${_hm(bestEl.off)} equally well (RMS ${fmt(bestEl.elevRms,2)}°) — the sun's azimuth against the prior heading chose between them`;
+    } else tiebreak='azimuth agreed with the elevation fit';
+  }
+  const fine=[]; for(let sOff=branch.off-1200;sOff<=branch.off+1200;sOff+=30) fine.push(score(sOff));
+  const chosen = hasAz ? fine.reduce((a,b)=>b.azRms<a.azRms?b:a)
+                       : fine.reduce((a,b)=>b.elevRms<a.elevRms?b:a);
+  const refinedBy = hasAz ? 'refined on azimuth, which near noon constrains the clock far more tightly than elevation'
+                          : 'refined on elevation — no prior heading available, so azimuth could not be used';
+
+  // 4. name the signature, if it has one
+  const hours=chosen.off/3600, whole=Math.abs(hours-Math.round(hours))<0.02;
+  let diag='';
+  if(Math.abs(chosen.off-(-tz*3600))<120){
+    diag=`<br><strong>This is exactly minus the timezone offset (${fmt(-tz,2)} h).</strong> That is the signature of the capture's local wall-clock having been stored as though it were UTC — a known fault in some Mapillary uploads, not a fault in the camera. The date is unaffected; only the time of day was shifted.`;
+  } else if(whole && Math.abs(hours)>=1){
+    diag=`<br>A whole number of hours points to a timezone or DST fault rather than a drifting camera clock.`;
+  }
+
+  const secondBest=near.filter(c=>Math.abs(c.off-chosen.off)>3600).sort((a,b)=>a.elevRms-b.elevRms)[0];
+  const cur=parseFloat($('clockOff').value)||0;
+  if(Math.abs(chosen.off)<120){
+    out.innerHTML=`<div class="note note-ok" style="margin-top:.6rem"><strong>The clock checks out — solved offset ${_hm(chosen.off)}.</strong>
+      The sun was found independently in ${obs.length} frame(s) and sits where the timestamps say it should
+      (elevation residual ${fmt(chosen.elevRms,2)}°${chosen.azRms!=null?`, azimuth residual ${fmt(chosen.azRms,1)}°`:''}).
+      No correction is needed.</div>`;
+    return;
+  }
+  out.innerHTML=`<div class="note note-ok" style="margin-top:.6rem">
+    <strong>Clock solved from the sun: ${_hm(chosen.off)}.</strong>
+    Measured against ${obs.length} frame(s) in which the sun was found independently of the clock.
+    Elevation residual ${fmt(chosen.elevRms,2)}°${chosen.azRms!=null?` · azimuth residual ${fmt(chosen.azRms,1)}° against ${chosen.nAz} prior heading(s)`:''}.
+    ${tiebreak?`<br><span style="opacity:.85">${tiebreak}.</span>`:''}
+    <br><span style="opacity:.85">Branch chosen on elevation; ${refinedBy}.</span>
+    ${secondBest?`<br><span style="opacity:.85">Next best offset ${_hm(secondBest.off)} at ${fmt(secondBest.elevRms,2)}° — rejected.</span>`:''}
+    ${diag}
+    <br><br><button class="btn btn-primary btn-sm" onclick="applySolvedClock(${chosen.off})">Apply ${_hm(chosen.off)} as the clock correction</button>
+    <span class="hint" style="margin-left:.5rem">replaces the current value of ${cur} s — it is an absolute offset, not an addition</span>
+  </div>`;
+}
+function _hm(sec){
+  // round to the minute FIRST, then split — splitting first produced "6h 60m"
+  let m=Math.round(Math.abs(sec)/60);
+  const h=Math.floor(m/60); m-=h*60;
+  if(!h && !m) return '0h 00m';
+  return `${sec<0?'−':'+'}${h}h ${String(m).padStart(2,'0')}m`;
+}
+function applySolvedClock(sec){
+  $('clockOff').value=Math.round(sec);
+  recomputeSolar();
+  $('clockSolve').innerHTML+=`<div class="note note-info" style="margin-top:.5rem">Applied. The solved offset is carried into the geometry sidecar as <span class="mono">clock_offset_s</span>, so every downstream figure records how the time was corrected.</div>`;
+}
+
 /* ═══════════════ PIXEL ACCESS ═══════════════ */
 const _cv=document.createElement('canvas'), _cx=_cv.getContext('2d',{willReadFrequently:true});
 async function getPixels(im, targetW){
@@ -1285,7 +1424,18 @@ function xcorrShift(a, b, w, azSpan){
 /* ═══════════════ REGISTRATION ═══════════════ */
 async function runSunRegistration(){
   const cand=S.images.filter(i=>i.solar && i.solar.el>=parseFloat($('minSunEl').value));
-  if(!cand.length){ setStatus('No frames have both a solar position and the sun above the cutoff.','error'); return; }
+  if(!cand.length){
+    const anySolar=S.images.filter(i=>i.solar).length;
+    const maxEl=anySolar?Math.max(...S.images.filter(i=>i.solar).map(i=>i.solar.el)):null;
+    // A clock that is hours wrong puts the computed sun underground and empties this
+    // list, so the tool must not stop at "no candidates" — that reads as "no sun".
+    if(anySolar && maxEl<parseFloat($('minSunEl').value)){
+      setStatus('Computed sun is below the cutoff in every frame — check the clock.','error');
+      const cs=$('clockSolve');
+      if(cs) cs.innerHTML=`<div class="note note-err"><strong>The computed sun is below the horizon in every frame (highest ${fmt(maxEl,1)}°), so no frame can be solved.</strong> If these images were taken in daylight, the timestamp or the timezone is wrong, not the sky. Use <em>Solve the clock from the sun</em> above — it finds the sun without trusting the clock and reports the offset that reconciles the two.</div>`;
+    } else setStatus('No frames have both a solar position and the sun above the cutoff.','error');
+    return;
+  }
   const band=parseFloat($('detBand').value)||4, bg=parseFloat($('detBg').value)||30;
   const W=parseInt($('detWidth').value,10);
   const maskAlpha=$('alphaSel').value==='mask';
