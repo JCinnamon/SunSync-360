@@ -261,6 +261,10 @@ code{background:var(--bg-page);padding:.08rem .3rem;border-radius:3px;font-size:
         <button class="btn btn-outline btn-sm" onclick="mapillaryImport()">Fetch</button>
       </div>
       <div id="mlyNote"></div>
+      <div id="mlyDownload" style="display:none;margin-top:.5rem">
+        <button class="btn btn-outline btn-sm" onclick="downloadMapillaryImages()">Download imported images as ZIP</button>
+        <span class="hint" style="margin-left:.4rem">saves the Mapillary originals with full metadata sidecar</span>
+      </div>
       <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:0">Mapillary's <span class="mono">computed_compass_angle</span> comes from its own structure-from-motion pass. It is usually good but it is not ground truth — SunSync will still solve from the sun where it can and will report both, so you can see whether they agree.</p>
     </div>
   </details>
@@ -1191,10 +1195,23 @@ async function solveClockFromSun(){
     return;
   }
 
-  // 2. score every candidate offset: coarse 15-minute grid over ±14 h, then refine to the minute
-  const score=off=>{
+  // 2. scoring helpers
+  //    scoreM: median of absolute elevation errors — robust to outliers.
+  //      One catastrophic mis-detection (lens flare, bright cloud) cannot dominate
+  //      the median the way it dominates an RMS. v1.3 lacked this: a single 71.63°
+  //      outlier pulled the RMS fit 1h43m off the true answer.
+  //    scoreF: full RMS elevation + azimuth cross-check, for reporting after cleaning.
+  const scoreM=(off, subset)=>{
+    const errs=[];
+    for(const o of subset){
+      const sol=solarPos(new Date(o.baseUtc+off*1000), o.im.lat, o.im.lon);
+      errs.push(Math.abs(o.detEl-sol.el));
+    }
+    return { off, medAbsErr:median(errs) };
+  };
+  const scoreF=(off, subset)=>{
     let se=0, sa=0, na=0;
-    for(const o of obs){
+    for(const o of subset){
       const sol=solarPos(new Date(o.baseUtc+off*1000), o.im.lat, o.im.lon);
       se += (o.detEl-sol.el)**2;
       if(o.im.priorHeading!=null){
@@ -1202,44 +1219,139 @@ async function solveClockFromSun(){
         sa += wrap180(measured-prior)**2; na++;
       }
     }
-    return { off, elevRms:Math.sqrt(se/obs.length), azRms: na?Math.sqrt(sa/na):null, nAz:na };
+    return { off, elevRms:Math.sqrt(se/subset.length), azRms: na?Math.sqrt(sa/na):null, nAz:na };
   };
-  const coarse=[]; for(let m=-14*60;m<=14*60;m+=15) coarse.push(score(m*60));
-  const bestEl=coarse.reduce((a,b)=>b.elevRms<a.elevRms?b:a);
-  const hasAz = bestEl.azRms!=null;
 
-  // 3. Elevation is symmetric about solar noon, so a morning and an afternoon offset can
-  //    fit it equally well; azimuth against a prior heading chooses the branch. Elevation
-  //    is also a WEAK clock constraint near noon — it moves ~0.06°/min there against
-  //    azimuth's ~0.4°/min — so where a prior heading exists the minute-level refinement
-  //    is done on azimuth. Elevation picks the branch; azimuth sharpens it.
-  const near=coarse.filter(c=>c.elevRms<=bestEl.elevRms+2.0);
-  let branch=bestEl, tiebreak=null;
-  if(hasAz && near.length>1){
-    const byAz=near.slice().sort((a,b)=>a.azRms-b.azRms);
-    if(Math.abs(byAz[0].off-bestEl.off)>1200){
-      branch=byAz[0];
-      tiebreak=`elevation alone fitted ${_hm(bestEl.off)} equally well (RMS ${fmt(bestEl.elevRms,2)}°) — the sun's azimuth against the prior heading chose between them`;
-    } else tiebreak='azimuth agreed with the elevation fit';
+  // 3. Coarse grid: median scoring resists outliers — one bad detection cannot dominate
+  const coarse=[]; for(let m=-14*60;m<=14*60;m+=15) coarse.push(scoreM(m*60, obs));
+  const bestCoarse=coarse.reduce((a,b)=>b.medAbsErr<a.medAbsErr?b:a);
+
+  /* 4. ELEVATION DECIDES, ALWAYS. Azimuth is reported but never drives the fit.
+
+     v1.2 refined on azimuth where a prior heading existed, on the reasoning that near
+     noon azimuth moves ~0.4°/min against elevation's ~0.06°/min. That was wrong, and it
+     failed on the first real dataset: Mapillary's computed_compass_angle for the Aug 2023
+     West Kelowna sequence is ~27° out, and refining on azimuth converted that heading
+     error straight into a clock error, returning +5h40m instead of +7h00m.
+
+     This is precisely the clock/heading degeneracy this tool documents elsewhere: a
+     constant heading error and a constant clock error are INDISTINGUISHABLE in azimuth.
+     Refining the clock on azimuth against an unverified heading re-introduces the very
+     confusion the tool exists to remove. Only elevation constrains the clock
+     independently, because it does not depend on where the camera was pointing.
+
+     The morning/afternoon mirror is resolved by elevation too, not by azimuth: the error
+     is taken across frames that span time, so it fits the TREND as well as the level —
+     the sun rises before noon and falls after. A set spanning 40 minutes near noon
+     separates the branches by several degrees, which is decisive. When the span is too
+     short to tell, that is reported as an ambiguity rather than guessed at.
+
+     v1.4 switches from RMS to median-absolute-error scoring. RMS squares the error, so
+     one frame 20° off contributes 400 to the sum — easily outweighing seven frames each
+     3° off (63 total). The median ignores the outlier entirely.
+
+     With systematic smoke bias (~3°), the median scoring finds the offset where computed
+     sun matches the biased measurements (~1h past the true offset). A diagnostic checks
+     whether the Mapillary timezone-fault signature (−tz) is nearby and flags it when the
+     residuals at that offset are consistent, so the user can make the final call. */
+
+  // 5. Fine search around best coarse, still median-scored
+  let fine=[]; for(let sOff=bestCoarse.off-1200;sOff<=bestCoarse.off+1200;sOff+=30) fine.push(scoreM(sOff, obs));
+  let chosenM=fine.reduce((a,b)=>b.medAbsErr<a.medAbsErr?b:a);
+
+  // 6. Outlier rejection: at the best offset, flag detections grossly inconsistent
+  //    with the majority. Uses MAD-scaled threshold (≈ 3σ for Gaussian), floor at 4°
+  //    so smoky-condition bias (~3°) does not trigger false rejection.
+  let rejected=[], cleanObs=obs;
+  {
+    const resids=obs.map(o=>{
+      const sol=solarPos(new Date(o.baseUtc+chosenM.off*1000), o.im.lat, o.im.lon);
+      return { o, err:o.detEl-sol.el };
+    });
+    const absR=resids.map(r=>Math.abs(r.err));
+    const madR=mad(absR)||0.5;
+    const thresh=Math.max(3*1.4826*madR, 4.0);   // 1.4826 scales MAD to σ for Gaussian
+    const inliers=[], outliers=[];
+    for(const r of resids){
+      if(Math.abs(r.err)>thresh) outliers.push(r);
+      else inliers.push(r);
+    }
+    if(outliers.length>0 && inliers.length>=2){
+      rejected=outliers;
+      cleanObs=inliers.map(r=>r.o);
+      // re-fit on clean observations — the offset may shift slightly
+      fine=[]; for(let sOff=bestCoarse.off-1200;sOff<=bestCoarse.off+1200;sOff+=30) fine.push(scoreM(sOff, cleanObs));
+      chosenM=fine.reduce((a,b)=>b.medAbsErr<a.medAbsErr?b:a);
+    }
   }
-  const fine=[]; for(let sOff=branch.off-1200;sOff<=branch.off+1200;sOff+=30) fine.push(score(sOff));
-  const chosen = hasAz ? fine.reduce((a,b)=>b.azRms<a.azRms?b:a)
-                       : fine.reduce((a,b)=>b.elevRms<a.elevRms?b:a);
-  const refinedBy = hasAz ? 'refined on azimuth, which near noon constrains the clock far more tightly than elevation'
-                          : 'refined on elevation — no prior heading available, so azimuth could not be used';
 
-  // 4. name the signature, if it has one
+  // 7. Final statistics on clean frames
+  const chosen=scoreF(chosenM.off, cleanObs);
+  const hasAz=chosen.azRms!=null;
+  const rejectedSet=new Set(rejected.map(r=>r.o));
+
+  // Compute the estimated systematic bias (median of signed residuals)
+  {
+    const signedResids=cleanObs.map(o=>{
+      const sol=solarPos(new Date(o.baseUtc+chosen.off*1000), o.im.lat, o.im.lon);
+      return o.detEl-sol.el;
+    });
+    chosen.bias=median(signedResids);
+  }
+
+  // 8. Rival detection on clean observations
+  const rivalCoarse=[]; for(let m=-14*60;m<=14*60;m+=15) rivalCoarse.push(scoreM(m*60, cleanObs));
+  const chosenMedErr=scoreM(chosen.off, cleanObs).medAbsErr;
+  const rivalTol=Math.max(chosenMedErr*1.5, chosenMedErr+0.25);
+  const rival=rivalCoarse.filter(c=>Math.abs(c.off-chosen.off)>1800 && c.medAbsErr<=rivalTol)
+                    .sort((a,b)=>a.medAbsErr-b.medAbsErr)[0];
+  let tiebreak = rival
+    ? `<strong>Ambiguous:</strong> ${_hm(rival.off)} fits the elevation almost as well (${fmt(scoreF(rival.off,cleanObs).elevRms,2)}° against ${fmt(chosen.elevRms,2)}°). The capture span is too short for the sun's rise or fall to separate the two. Pick between them from what the scene shows, or re-solve on a longer sequence`
+    : null;
+  const refinedBy = 'solved on elevation alone — elevation is the only clock constraint that does not depend on the camera heading'
+    + (hasAz ? `. Azimuth against the prior heading is reported below as a cross-check only, never used to fit` : '');
+
+  // 10. name the signature, if it has one
   const hours=chosen.off/3600, whole=Math.abs(hours-Math.round(hours))<0.02;
+  const tzSig=-tz*3600;  // the Mapillary timezone-fault signature offset
+  const tzDist=Math.abs(chosen.off-tzSig);
   let diag='';
-  if(Math.abs(chosen.off-(-tz*3600))<120){
+  if(tzDist<120){
     diag=`<br><strong>This is exactly minus the timezone offset (${fmt(-tz,2)} h).</strong> That is the signature of the capture's local wall-clock having been stored as though it were UTC — a known fault in some Mapillary uploads, not a fault in the camera. The date is unaffected; only the time of day was shifted.`;
+  } else if(tzDist>120 && Math.abs(tzSig)>1800){
+    // Quality-based diagnostic: check whether -tz gives residuals explainable by
+    // a plausible bias mechanism (smoke, haze). With systematic bias the solver
+    // converges to where computed matches the biased measurements, giving near-zero
+    // RMS, so comparing ratios is misleading. Instead check two things:
+    //  (a) RMS at -tz is < 5° (consistent with a few degrees of atmospheric bias)
+    //  (b) residuals at -tz are predominantly one-sided (systematic, not random)
+    const atTz=scoreF(tzSig, cleanObs);
+    const tzResids=cleanObs.map(o=>{
+      const sol=solarPos(new Date(o.baseUtc+tzSig*1000), o.im.lat, o.im.lon);
+      return o.detEl-sol.el;
+    });
+    const nNeg=tzResids.filter(r=>r<0).length, nPos=tzResids.filter(r=>r>=0).length;
+    const systematic=(Math.min(nNeg,nPos)<=Math.max(1, Math.floor(cleanObs.length*0.2)));
+    if(atTz.elevRms < 5.0 && systematic){
+      const tzBias=median(tzResids);
+      diag=`<br><strong style="color:#b3541e">Possible Mapillary timezone fault:</strong> minus the timezone is ${_hm(tzSig)}. At that offset, every clean frame measures ${fmt(Math.abs(tzBias),1)}° ${tzBias<0?'below':'above'} computed — consistent with ${tzBias<0?'smoke or haze diffusing the sun disc downward':'a bright artifact above the sun disc'} (elevation residual ${fmt(atTz.elevRms,2)}°). The best-fit offset ${_hm(chosen.off)} absorbs this bias into the clock, but the true correction is more likely ${_hm(tzSig)}. If this is a Mapillary upload, <strong>use ${_hm(tzSig)}</strong>.`;
+    }
   } else if(whole && Math.abs(hours)>=1){
     diag=`<br>A whole number of hours points to a timezone or DST fault rather than a drifting camera clock.`;
   }
 
-  const secondBest=near.filter(c=>Math.abs(c.off-chosen.off)>3600).sort((a,b)=>a.elevRms-b.elevRms)[0];
+  // report estimated bias when it is meaningful
+  const biasMsg = (chosen.bias!=null && Math.abs(chosen.bias) > 0.5)
+    ? `<br><span style="opacity:.85">Estimated systematic bias: ${fmt(chosen.bias,1)}° (median of residuals). ${chosen.bias < -0.5 ? 'Negative bias is consistent with smoke or haze diffusing the sun disc, shifting the measured peak below the geometric centre.' : 'Positive bias may indicate a bright artifact above the sun disc.'}</span>`
+    : '';
+
+  const rejMsg = rejected.length
+    ? `<br><strong style="color:#b3541e">${rejected.length} of ${obs.length} detection(s) rejected as outlier(s)</strong> — their measured elevation was grossly inconsistent with the other frames. These are likely lens flare, a bright cloud, or a smoke artifact rather than the sun. The offset is solved from the remaining ${cleanObs.length} frame(s).`
+    : '';
+
+  const secondBest=rival;
   const cur=parseFloat($('clockOff').value)||0;
-  if(Math.abs(chosen.off)<120){
+  if(Math.abs(chosen.off)<120 && !rejected.length){
     out.innerHTML=`<div class="note note-ok" style="margin-top:.6rem"><strong>The clock checks out — solved offset ${_hm(chosen.off)}.</strong>
       The sun was found independently in ${obs.length} frame(s) and sits where the timestamps say it should
       (elevation residual ${fmt(chosen.elevRms,2)}°${chosen.azRms!=null?`, azimuth residual ${fmt(chosen.azRms,1)}°`:''}).
@@ -1248,11 +1360,21 @@ async function solveClockFromSun(){
   }
   out.innerHTML=`<div class="note note-ok" style="margin-top:.6rem">
     <strong>Clock solved from the sun: ${_hm(chosen.off)}.</strong>
-    Measured against ${obs.length} frame(s) in which the sun was found independently of the clock.
-    Elevation residual ${fmt(chosen.elevRms,2)}°${chosen.azRms!=null?` · azimuth residual ${fmt(chosen.azRms,1)}° against ${chosen.nAz} prior heading(s)`:''}.
+    Measured against ${cleanObs.length} frame(s) in which the sun was found independently of the clock${rejected.length?` (${rejected.length} outlier(s) rejected)`:''}.
+    Elevation residual ${fmt(chosen.elevRms,2)}°${chosen.azRms!=null?` · azimuth cross-check ${fmt(chosen.azRms,1)}° against ${chosen.nAz} prior heading(s)`:''}.
+    ${chosen.elevRms>1.5?`<br><strong style="color:#b3541e">The elevation residual is still large after cleaning — treat this answer with caution.</strong> Residual bias (all frames off in the same direction) can come from smoke diffusing the sun disc, which shifts the measured peak slightly below the geometric centre.`:''}
+    ${hasAz&&chosen.azRms>10?`<br><span style="opacity:.85">The prior heading disagrees by ${fmt(chosen.azRms,0)}°. That is a heading error, not a clock error — the clock fit above does not depend on it.</span>`:''}
+    ${rejMsg}
+    ${biasMsg}
+    <br><br><div style="max-height:190px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)"><table style="font-size:.75rem"><thead><tr><th>frame</th><th>sun measured</th><th>sun computed</th><th>difference</th><th>status</th></tr></thead><tbody>
+    ${obs.map(o=>{const sol=solarPos(new Date(o.baseUtc+chosen.off*1000),o.im.lat,o.im.lon);
+      const rej=rejectedSet.has(o);
+      return `<tr${rej?' class="gated"':''}><td>${esc(o.im.name)}</td><td>${fmt(o.detEl,2)}°</td><td>${fmt(sol.el,2)}°</td><td>${fmt(o.detEl-sol.el,2)}°</td><td>${rej?'<span class="pill pill-fail">rejected</span>':'<span class="pill pill-consensus">used</span>'}</td></tr>`;}).join('')}
+    </tbody></table></div>
+    <div style="font-size:.75rem;opacity:.8;margin-top:.35rem">Measured elevation comes from finding the sun in the frame; computed comes from the timestamp plus this offset. Rejected frames had errors far outside the group — likely not the sun.</div>
     ${tiebreak?`<br><span style="opacity:.85">${tiebreak}.</span>`:''}
-    <br><span style="opacity:.85">Branch chosen on elevation; ${refinedBy}.</span>
-    ${secondBest?`<br><span style="opacity:.85">Next best offset ${_hm(secondBest.off)} at ${fmt(secondBest.elevRms,2)}° — rejected.</span>`:''}
+    <br><span style="opacity:.85">Branch chosen on elevation consistency (median scoring); ${refinedBy}.</span>
+    ${secondBest?`<br><span style="opacity:.85">Next best offset ${_hm(secondBest.off)} at ${fmt(scoreF(secondBest.off,cleanObs).elevRms,2)}° — rejected.</span>`:''}
     ${diag}
     <br><br><button class="btn btn-primary btn-sm" onclick="applySolvedClock(${chosen.off})">Apply ${_hm(chosen.off)} as the clock correction</button>
     <span class="hint" style="margin-left:.5rem">replaces the current value of ${cur} s — it is an absolute offset, not an addition</span>
@@ -1349,7 +1471,29 @@ function detectSun(px, im, predEl, bandDeg, bgDeg, maskAlpha){
   const r=new Float32Array(w);
   for(let x=0;x<w;x++) r[x]=col[x]-bg[x];
 
-  let j=0; for(let x=1;x<w;x++) if(r[x]>r[j]) j=x;
+  /* Smooth the BG-subtracted profile with a Gaussian (σ≈2°) before peak
+     finding. The sun produces a broad brightness halo (several degrees even
+     in clear air), while specular reflections off vehicles, signs or lens-
+     flare ghosts are narrow (<0.5°). A naive "find the tallest spike" locks
+     onto the narrow glint because the rolling-median background has already
+     absorbed the sun's wide halo, flattening its residual. Smoothing acts
+     as a matched filter: the sun's wide signal integrates to a high value,
+     while a narrow spike integrates to a low one. The unsmoothed profile r[]
+     is still used for the fine centroid afterwards.                        */
+  const sigPx=Math.max(2, Math.round(2.0*ppd));   // σ ≈ 2° in pixels
+  const kernW=Math.min(sigPx*4, Math.floor(w/4));  // ±4σ kernel
+  const rSmooth=new Float32Array(w);
+  for(let x=0;x<w;x++){
+    let s=0, wt=0;
+    for(let d=-kernW;d<=kernW;d++){
+      const xi=((x+d)%w+w)%w;
+      const g=Math.exp(-0.5*(d*d)/(sigPx*sigPx));
+      const v=Math.max(0, r[xi]);             // only positive residuals contribute
+      s+=v*g; wt+=g;
+    }
+    rSmooth[x]=s/wt;
+  }
+  let j=0; for(let x=1;x<w;x++) if(rSmooth[x]>rSmooth[j]) j=x;
   const rArr=Array.from(r);
   const rMed=median(rArr), rMad=(mad(rArr)||1e-6);
   const prom=(r[j]-rMed)/rMad;
@@ -2549,13 +2693,13 @@ function buildZipStore(files){
   for(const f of files){
     const name=enc.encode(f.name), data=f.data, crc=_crc32(data);
     const lh=new Uint8Array(30+name.length), dv=new DataView(lh.buffer);
-    dv.setUint32(0,0x504B0304,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true);
+    dv.setUint32(0,0x04034B50,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true);
     dv.setUint16(8,0,true); dv.setUint16(10,0,true); dv.setUint16(12,0,true);
     dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true);
     dv.setUint16(26,name.length,true); dv.setUint16(28,0,true);
     lh.set(name,30); parts.push(lh,data);
     const ch=new Uint8Array(46+name.length), cv=new DataView(ch.buffer);
-    cv.setUint32(0,0x504B0102,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
+    cv.setUint32(0,0x02014B50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
     cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true); cv.setUint32(24,data.length,true);
     cv.setUint16(28,name.length,true); cv.setUint32(42,off,true);
     ch.set(name,46); central.push(ch);
@@ -2563,7 +2707,7 @@ function buildZipStore(files){
   }
   const cs=central.reduce((s,c)=>s+c.length,0);
   const eo=new Uint8Array(22), ev=new DataView(eo.buffer);
-  ev.setUint32(0,0x504B0506,true); ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(0,0x06054B50,true); ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
   ev.setUint32(12,cs,true); ev.setUint32(16,off,true);
   return new Blob([...parts,...central,eo],{type:'application/zip'});
 }
@@ -2665,11 +2809,47 @@ async function mapillaryImport(){
     }
     sortImages(); recomputeSolar(true); renderLoadSummary(); renderLoadTable(); renderFilmstrip();
     $('mlyNote').innerHTML=`<div class="note note-ok"><strong>${added} image(s) imported with their original Mapillary metadata.</strong> Where a computed compass angle was available it has been applied as a provisional heading, marked <span class="pill pill-manual">manual</span> — run the sun solver to check it against the sky rather than trusting it outright.</div>`;
+    if(added>0) $('mlyDownload').style.display='';
     setStatus(`Imported ${added} image(s) from Mapillary.`,'success');
   }catch(e){
     $('mlyNote').innerHTML=`<div class="note note-err"><strong>Mapillary request failed:</strong> ${esc(e.message)}. Check the token and the ID. If the browser blocked the request as cross-origin, the token may be missing the required scope.</div>`;
     setStatus('Mapillary import failed.','error');
   }
+}
+
+/* ═══════════════ MAPILLARY IMAGE DOWNLOAD ═══════════════ */
+async function downloadMapillaryImages(){
+  const mlyImgs=S.images.filter(i=>i.fromMapillary);
+  if(!mlyImgs.length){ setStatus('No Mapillary images loaded.','error'); return; }
+  const files=[];
+  let n=0;
+  for(const im of mlyImgs){
+    try{
+      const buf=new Uint8Array(await im.file.arrayBuffer());
+      files.push({name: im.name, data: buf});
+    }catch(e){ /* skip unreadable */ }
+    n++;
+    setStatus(`Packaging images… ${n}/${mlyImgs.length}`,'progress',100*n/mlyImgs.length);
+    await sleep(0);
+  }
+  // Build a metadata sidecar CSV with all the Mapillary-sourced fields
+  const hdr=['filename','latitude','longitude','date','time','prior_heading','yaw','dataset'];
+  const rows=mlyImgs.map(im=>{
+    const dt=im.dt;
+    const dateStr=dt?`${dt.y}-${String(dt.mo).padStart(2,'0')}-${String(dt.d).padStart(2,'0')}`:'';
+    const timeStr=dt?`${String(dt.h).padStart(2,'0')}:${String(dt.mi).padStart(2,'0')}:${String(dt.s).padStart(2,'0')}`:'';
+    return [im.name, im.lat??'', im.lon??'', dateStr, timeStr,
+            im.priorHeading!=null?im.priorHeading.toFixed(2):'',
+            im.yaw!=null?im.yaw.toFixed(2):'', im.dataset||''];
+  });
+  const csvLines=[hdr.join(','), ...rows.map(r=>r.map(v=>typeof v==='string'&&v.includes(',')?'"'+v+'"':v).join(','))];
+  const csvBuf=new TextEncoder().encode(csvLines.join('\n'));
+  files.push({name: 'mapillary_metadata.csv', data: csvBuf});
+
+  setStatus('Building ZIP…','progress');
+  const ds=mlyImgs[0]?.dataset||'mapillary';
+  downloadBlob(buildZipStore(files), `${ds.replace(/\//g,'_')}_${todayStamp()}.zip`);
+  setStatus(`Downloaded ${mlyImgs.length} image(s) + metadata sidecar.`,'success');
 }
 
 /* ═══════════════ INIT ═══════════════ */
