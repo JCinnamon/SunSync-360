@@ -12,21 +12,32 @@
 <meta property="og:description" content="Register 360° outdoor imagery to true north using the sun. Solar geometry, scattering angles and dataset matching, entirely in the browser.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/*__VOM_FONT_START__*/
+@font-face{font-family:'VisOmatic';font-style:normal;font-weight:400;font-display:swap;src:url(data:font/woff2;base64,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) format('woff2');}
+/*__VOM_FONT_END__*/
+/*__VOM_TOKENS_START__ — generated from shared/vom_shared.py, do not edit here */
 :root{
-  --vom-display:'Courier New',ui-monospace,monospace;
-  --vom-bar:#16323f;
-  --vom-tool:#2c5f7a;
   --primary:#2c5f7a; --primary-dark:#1e4358;
   --accent:#1a9080; --accent-hover:#168070; --accent-light:#e6f4f1;
-  --border:#dde8ed; --bg-page:#f0f4f7; --bg-white:#fff;
+  --border:#dde8ed; --bg-page:#f0f4f7; --bg-white:#ffffff;
   --text:#1a2332; --text-muted:#6b7a8d;
   --danger:#c0392b; --danger-bg:#fef0ef;
   --warning-bg:#fff8e6; --warning-border:#f0a500;
   --success-bg:#e6f4f1;
-  --sun:#e8a33d; --sun-dark:#b8761d;
+  --vom-bar:#16323f;      /* suite ribbon, deepest */
+  --vom-tool:#2c5f7a;     /* tool ribbon, mid blue */
   --radius:6px;
-  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --vom-font:'Inter',system-ui,-apple-system,sans-serif;
+  --vom-display:'VisOmatic','Courier New',ui-monospace,monospace;
+  --vom-mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;
+  --vom-teal:#5fd0bd;     /* the suite tagline, and only that */
+  /* Legacy aliases — the Cutter and the landing page use the short names. */
+  --font:var(--vom-font); --display:var(--vom-display); --mono:var(--vom-mono);
 }
+/*__VOM_TOKENS_END__*/
+/* Tokens specific to this tool. Outside the markers on purpose —
+   anything inside them is replaced wholesale by the next sync. */
+:root{ --sun:#e8a33d; --sun-dark:#b8761d; }
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--font);background:var(--bg-page);color:var(--text);font-size:14px;line-height:1.5}
 .vom-bar{background:var(--vom-bar);color:#fff;display:flex;align-items:center;gap:1.25rem;padding:.5rem 1.5rem;flex-wrap:wrap}
@@ -142,45 +153,157 @@ code{background:var(--bg-page);padding:.08rem .3rem;border-radius:3px;font-size:
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .split{display:grid;grid-template-columns:1fr 320px;gap:1rem}
 @media(max-width:1100px){.split{grid-template-columns:1fr}}
+
+/*__VOM_RIBBON_START__ — generated from shared/vom_shared.py, do not edit here */
+.vom-bar,.page-header .header-top{background:var(--vom-bar);color:#fff;display:flex;align-items:center;
+  gap:1.25rem;padding:.5rem 1.5rem;flex-wrap:wrap;position:relative;z-index:60;flex:0 0 auto}
+.vom-wordmark,.wordmark{font-family:var(--vom-display);font-size:1.47rem;line-height:1;letter-spacing:.01em;
+  color:var(--vom-teal);text-decoration:none;white-space:nowrap;flex:0 0 auto}
+.vom-wordmark:hover,.wordmark:hover{opacity:.85}
+.vom-tagline{font-family:var(--vom-display);font-size:1.32rem;line-height:1;color:var(--vom-teal);
+  opacity:1;white-space:nowrap;flex:0 0 auto}
+.vom-nav,.suite-nav{display:flex;gap:.2rem;margin-left:auto;align-items:center;flex-wrap:wrap}
+.vom-nav a,.suite-nav a{font-family:var(--vom-display);font-size:.98rem;color:rgba(255,255,255,.72);
+  text-decoration:none;padding:.24rem .66rem;border-radius:var(--radius);white-space:nowrap;
+  transition:background .12s,color .12s}
+.vom-nav a:hover,.suite-nav a:hover{background:rgba(255,255,255,.13);color:#fff}
+.vom-nav a.current,.suite-nav a.current{background:rgba(255,255,255,.2);color:#fff}
+.vom-nav .vom-div,.suite-nav .divider{width:1px;height:17px;background:rgba(255,255,255,.25);
+  margin:0 .35rem;flex:0 0 auto}
+.vom-nav a.vom-ext,.suite-nav a.ext{font-family:var(--vom-font);font-size:.78rem;color:rgba(255,255,255,.58)}
+/* The tool title, one size for all five. It ran 1.16 / 1.42 / 1.56rem across
+   the suite. The Analyzer's .compact variant still wins where it applies —
+   higher specificity, so source order does not come into it. */
+.vom-toolbar h1,.header-title h1{font-family:var(--vom-display);font-size:1.42rem;font-weight:400;
+  letter-spacing:.01em;margin:0;line-height:1.2}
+/* The line beside the tool name. In VisOmatic like the name it sits next to,
+   and one size everywhere — it ran .78 / .86 / .95rem in three different faces. */
+.vom-toolbar p,.vom-toolbar.compact p,.header-title p{font-family:var(--vom-display);font-size:.92rem;
+  margin:0;opacity:.85;line-height:1.35}
+/* The tool bar is a flex row so a right-hand slot can exist at all. */
+.vom-toolbar,.header-title{display:flex;align-items:baseline;gap:.85rem;flex-wrap:wrap}
+.vom-toolbar .tb-right,.header-title .tb-right{margin-left:auto;display:flex;gap:.4rem;align-items:center}
+.vom-help-btn{font-family:var(--vom-font);font-size:.78rem;color:#fff;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.28);border-radius:var(--radius);padding:.22rem .6rem;
+  cursor:pointer;white-space:nowrap;transition:background .12s}
+.vom-help-btn:hover{background:rgba(255,255,255,.26)}
+.vom-help-btn:focus-visible{outline:2px solid #fff;outline-offset:1px}
+/* The ribbon needs about 1050px to stay on one line once the nav is at its
+   full size. Drop the tagline before it wraps, not after. */
+@media(max-width:1060px){.vom-tagline{display:none}}
+@media(max-width:640px){.vom-bar,.page-header .header-top{padding-left:.9rem;padding-right:.9rem}}
+/*__VOM_RIBBON_END__*/
+
+/*__VOM_HELP_START__ — generated from shared/vom_shared.py, do not edit here */
+#vomHelpBack{position:fixed;inset:0;background:rgba(16,26,32,.55);z-index:900;display:none;
+  align-items:center;justify-content:center;padding:1rem}
+#vomHelpBack.show{display:flex}
+#vomHelpBack .box{background:var(--bg-white);color:var(--text);border-radius:var(--radius);
+  box-shadow:0 12px 40px rgba(0,0,0,.3);max-width:820px;width:100%;max-height:88vh;
+  display:flex;flex-direction:column}
+#vomHelpBack .hh{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;gap:.6rem;font-family:var(--vom-display);font-size:1.05rem;color:var(--primary-dark)}
+#vomHelpBack .hh button{margin-left:auto;background:none;border:none;font-size:1.3rem;line-height:1;
+  cursor:pointer;color:var(--text-muted);padding:0 .2rem}
+#vomHelpBack .hh button:hover{color:var(--text)}
+#vomHelpBack .hb{padding:1rem;overflow-y:auto;font-size:.87rem;line-height:1.6}
+#vomHelpBack .hb h4{font-family:var(--vom-display);color:var(--primary-dark);margin:1rem 0 .35rem}
+#vomHelpBack .hb h4:first-child{margin-top:0}
+#vomHelpBack .hb p{margin:0 0 .7rem}
+#vomHelpBack .hb ul,#vomHelpBack .hb ol{margin:0 0 .7rem;padding-left:1.2rem}
+#vomHelpBack .hb li{margin-bottom:.3rem}
+#vomHelpBack .hb details{margin:.5rem 0;border:1px solid var(--border);border-radius:var(--radius);
+  padding:.5rem .7rem;background:var(--bg-page)}
+#vomHelpBack .hb summary{cursor:pointer;font-weight:600;color:var(--primary-dark)}
+#vomHelpBack .hb table{border-collapse:collapse;width:100%;margin:.4rem 0;font-size:.84rem}
+#vomHelpBack .hb th,#vomHelpBack .hb td{text-align:left;padding:.3rem .5rem;
+  border-bottom:1px solid var(--border);vertical-align:top}
+/*__VOM_HELP_END__*/
+
+/*__VOM_DROP_START__ — generated from shared/vom_shared.py, do not edit here */
+#vomDropOverlay{position:fixed;inset:0;z-index:880;display:none;align-items:center;
+  justify-content:center;background:rgba(22,50,63,.72);backdrop-filter:blur(2px)}
+#vomDropOverlay.show{display:flex}
+#vomDropOverlay .card{background:var(--bg-white);border:2px dashed var(--accent);
+  border-radius:var(--radius);padding:1.6rem 2.2rem;text-align:center;max-width:min(90vw,30rem)}
+#vomDropOverlay .t{font-family:var(--vom-display);font-size:1.2rem;color:var(--primary-dark)}
+#vomDropOverlay .s{font-size:.85rem;color:var(--text-muted);margin-top:.35rem}
+/*__VOM_DROP_END__*/
+
+/*__VOM_PROJBAR_START__ — generated from shared/vom_shared.py, do not edit here */
+#vomProjBar{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;padding:.34rem 1.5rem;
+  background:var(--bg-white);border-bottom:1px solid var(--border);font-size:.8rem;min-height:30px;
+  font-family:var(--vom-font);color:var(--text)}
+#vomProjBar.empty{background:var(--bg-page)}
+#vomProjBar .pb-label{font-family:var(--vom-mono);font-size:.66rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-muted)}
+#vomProjBar .pb-name{font-weight:600}
+#vomProjBar .pb-sub,#vomProjBar .pb-none{color:var(--text-muted);font-size:.76rem}
+#vomProjBar .pb-link{margin-left:auto;color:var(--primary);text-decoration:none;font-size:.78rem}
+#vomProjBar .pb-link:hover{text-decoration:underline}
+#vomProjBar .pb-pill{font-family:var(--vom-mono);font-size:.62rem;letter-spacing:.07em;
+  text-transform:uppercase;padding:.1rem .34rem;border-radius:3px}
+#vomProjBar .pb-pill.folder{background:var(--accent-light);color:#12695c}
+#vomProjBar .pb-pill.browser{background:var(--bg-page);color:var(--text-muted);border:1px solid var(--border)}
+#vomProjBar button{font-family:var(--vom-font);font-size:.76rem;padding:.2rem .55rem;cursor:pointer;
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-white);color:var(--primary)}
+#vomProjBar button:hover{background:var(--bg-page)}
+#vomProjBar .pb-dest{color:var(--accent);font-size:.76rem}
+#vomProjBar button.pb-open{border-color:var(--accent);color:var(--accent)}
+@media(max-width:640px){#vomProjBar{padding-left:.9rem;padding-right:.9rem}}
+
+/* The picker. Its own tiny modal rather than each tool's, because the four
+   tools have four different dialog systems and none of them is shared. */
+#vomPick{position:fixed;inset:0;z-index:9600;display:none;align-items:center;justify-content:center;
+  background:rgba(15,28,36,.44);font-family:var(--vom-font)}
+#vomPick.on{display:flex}
+#vomPick .pk{background:var(--bg-white);border-radius:var(--radius);width:min(560px,92vw);
+  max-height:82vh;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(15,28,36,.3)}
+#vomPick .pk-head{padding:.85rem 1.1rem .6rem;border-bottom:1px solid var(--border)}
+#vomPick .pk-head h3{margin:0;font-family:var(--vom-display);font-weight:400;font-size:1.12rem;color:var(--text)}
+#vomPick .pk-head p{margin:.28rem 0 0;font-size:.78rem;color:var(--text-muted);line-height:1.45}
+#vomPick .pk-body{overflow:auto;padding:.5rem}
+#vomPick .pk-row{display:block;width:100%;text-align:left;padding:.55rem .7rem;border:1px solid transparent;
+  border-radius:var(--radius);background:none;cursor:pointer;font-size:.86rem;color:var(--text)}
+#vomPick .pk-row:hover{background:var(--bg-page);border-color:var(--border)}
+#vomPick .pk-row b{font-weight:600}
+#vomPick .pk-row span{display:block;font-size:.74rem;color:var(--text-muted);margin-top:.12rem}
+#vomPick .pk-empty{padding:1rem .8rem;font-size:.82rem;color:var(--text-muted);line-height:1.5}
+#vomPick .pk-foot{padding:.6rem 1.1rem .85rem;border-top:1px solid var(--border);display:flex;
+  align-items:center;gap:.7rem}
+#vomPick .pk-foot button{font-family:var(--vom-font);font-size:.8rem;padding:.32rem .8rem;cursor:pointer;
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-white);color:var(--text)}
+#vomPick .pk-note{font-size:.74rem;color:var(--text-muted)}
+/*__VOM_PROJBAR_END__*/
 </style>
 </head>
 <body>
 <div class="vom-bar">
   <a class="vom-wordmark" href="https://www.jonathancinnamon.com/vis-o-matic/" title="Vis-O-Matic">Vis-O-Matic</a>
-  <span class="vom-tagline">free tools for image analysis</span>
-  <nav class="vom-nav">
-    <a href="https://www.jonathancinnamon.com/image-cutter/">Cutter</a>
-    <a href="https://www.jonathancinnamon.com/image-colour-analyzer/">Analyzer</a>
-    <a href="https://www.jonathancinnamon.com/image-colour-visualizer/">Visualizer</a>
-    <a href="#" class="current">SunSync&nbsp;360</a>
-    <span class="vom-div"></span>
-    <a class="vom-ext" href="https://www.jonathancinnamon.com">jonathancinnamon.com</a>
-  </nav>
+  <span class="vom-tagline">image analysis tools</span>
+  <!--__VOM_NAV_START__-->
+    <nav class="vom-nav">
+      <a href="https://www.jonathancinnamon.com/image-manager/">Manager</a>
+      <a href="https://www.jonathancinnamon.com/image-cutter/">Cutter</a>
+      <a href="https://www.jonathancinnamon.com/image-colour-analyzer/">Analyzer</a>
+      <a href="https://www.jonathancinnamon.com/image-colour-visualizer/">Visualizer</a>
+      <a href="https://www.jonathancinnamon.com/sunsync-360/" class="current">SunSync&nbsp;360</a>
+      <span class="vom-div"></span>
+      <a class="vom-ext" href="https://www.jonathancinnamon.com">jonathancinnamon.com</a>
+    </nav>
+    <!--__VOM_NAV_END__-->
 </div>
 <div class="vom-toolbar">
   <h1>SunSync 360</h1>
-  <p>Solar geometry and true-north registration for 360° outdoor imagery. Everything runs locally in your browser.</p>
+  <p>Solar geometry and true-north registration for 360° imagery</p>
+  <span class="tb-right"><button type="button" class="vom-help-btn" onclick="vomHelpOpen()" title="How this tool works">? Guide</button></span>
 </div>
 
+
+<div id="vomProjBar" class="empty"></div>
 <div class="page-body">
 
-<details id="introBox" open>
-  <summary>What this does, and how to use it</summary>
-  <div class="body">
-    <p>An equirectangular 360° frame has a horizontal axis that <em>looks</em> like a compass but usually isn't one: almost no consumer 360 camera writes its heading into the file. SunSync 360 recovers that heading by finding the sun in the frame and comparing it with where the sun astronomically <em>had</em> to be, given the GPS position and timestamp already in the EXIF.</p>
-    <p><strong>The check that makes it trustworthy:</strong> solar <em>elevation</em> does not depend on heading at all. So the gap between the sun's measured elevation in the frame and its computed elevation is a free, independent confidence score for every frame. Small residual → the detection found the sun. Large residual → it found a bright cloud, and the frame is gated out rather than silently mis-registered.</p>
-    <p><strong>Second opinion:</strong> where the sun can't be trusted or isn't visible, the tool cross-correlates the static terrain band below the horizon between frames. That gives a <em>relative</em> heading, which one sun-anchored frame converts to absolute.</p>
-    <ol style="margin:.5rem 0 0;padding-left:1.1rem">
-      <li><strong>Load</strong> — drop in a folder of 360° images. EXIF, GPS and projection are read automatically; anything missing can be typed in.</li>
-      <li><strong>Geometry</strong> — check the timezone and clock, review computed sun positions and air mass.</li>
-      <li><strong>Register</strong> — run detection, inspect the yaw-versus-time trace, accept a consensus or keep per-frame headings.</li>
-      <li><strong>Viewer</strong> — see the sun markers, true-north ticks and scattering-angle contours drawn on the imagery.</li>
-      <li><strong>Analyse</strong> — scattering-angle annuli, phase curves, and solar-window matching across datasets.</li>
-      <li><strong>Export</strong> — a geometry sidecar CSV for the Batch Image Analyzer, and optionally rotated images.</li>
-    </ol>
-    <p style="margin-bottom:0"><strong>Nothing leaves your machine.</strong> Files are read in the browser; no upload, no server.</p>
-  </div>
-</details>
+
 
 <div class="tabs" id="tabs">
   <button class="tab active" data-p="load"><span class="tabnum">1</span>Load</button>
@@ -1231,7 +1354,7 @@ async function solveClockFromSun(){
      v1.2 refined on azimuth where a prior heading existed, on the reasoning that near
      noon azimuth moves ~0.4°/min against elevation's ~0.06°/min. That was wrong, and it
      failed on the first real dataset: Mapillary's computed_compass_angle for the Aug 2023
-     West Kelowna sequence is ~27° out, and refining on azimuth converted that heading
+     test sequence was ~27° out, and refining on azimuth converted that heading
      error straight into a clock error, returning +5h40m instead of +7h00m.
 
      This is precisely the clock/heading degeneracy this tool documents elsewhere: a
@@ -1250,7 +1373,7 @@ async function solveClockFromSun(){
      one frame 20° off contributes 400 to the sum — easily outweighing seven frames each
      3° off (63 total). The median ignores the outlier entirely.
 
-     With systematic smoke bias (~3°), the median scoring finds the offset where computed
+     With a systematic scattering bias (~3°), the median scoring finds the offset where computed
      sun matches the biased measurements (~1h past the true offset). A diagnostic checks
      whether the Mapillary timezone-fault signature (−tz) is nearby and flags it when the
      residuals at that offset are consistent, so the user can make the final call. */
@@ -1320,7 +1443,7 @@ async function solveClockFromSun(){
     diag=`<br><strong>This is exactly minus the timezone offset (${fmt(-tz,2)} h).</strong> That is the signature of the capture's local wall-clock having been stored as though it were UTC — a known fault in some Mapillary uploads, not a fault in the camera. The date is unaffected; only the time of day was shifted.`;
   } else if(tzDist>120 && Math.abs(tzSig)>1800){
     // Quality-based diagnostic: check whether -tz gives residuals explainable by
-    // a plausible bias mechanism (smoke, haze). With systematic bias the solver
+    // a plausible bias mechanism (haze, smoke, thin cloud). With systematic bias the solver
     // converges to where computed matches the biased measurements, giving near-zero
     // RMS, so comparing ratios is misleading. Instead check two things:
     //  (a) RMS at -tz is < 5° (consistent with a few degrees of atmospheric bias)
@@ -1334,7 +1457,7 @@ async function solveClockFromSun(){
     const systematic=(Math.min(nNeg,nPos)<=Math.max(1, Math.floor(cleanObs.length*0.2)));
     if(atTz.elevRms < 5.0 && systematic){
       const tzBias=median(tzResids);
-      diag=`<br><strong style="color:#b3541e">Possible Mapillary timezone fault:</strong> minus the timezone is ${_hm(tzSig)}. At that offset, every clean frame measures ${fmt(Math.abs(tzBias),1)}° ${tzBias<0?'below':'above'} computed — consistent with ${tzBias<0?'smoke or haze diffusing the sun disc downward':'a bright artifact above the sun disc'} (elevation residual ${fmt(atTz.elevRms,2)}°). The best-fit offset ${_hm(chosen.off)} absorbs this bias into the clock, but the true correction is more likely ${_hm(tzSig)}. If this is a Mapillary upload, <strong>use ${_hm(tzSig)}</strong>.`;
+      diag=`<br><strong style="color:#b3541e">Possible Mapillary timezone fault:</strong> minus the timezone is ${_hm(tzSig)}. At that offset, every clean frame measures ${fmt(Math.abs(tzBias),1)}° ${tzBias<0?'below':'above'} computed — consistent with ${tzBias<0?'atmospheric scattering diffusing the sun disc downward':'a bright artifact above the sun disc'} (elevation residual ${fmt(atTz.elevRms,2)}°). The best-fit offset ${_hm(chosen.off)} absorbs this bias into the clock, but the true correction is more likely ${_hm(tzSig)}. If this is a Mapillary upload, <strong>use ${_hm(tzSig)}</strong>.`;
     }
   } else if(whole && Math.abs(hours)>=1){
     diag=`<br>A whole number of hours points to a timezone or DST fault rather than a drifting camera clock.`;
@@ -1342,11 +1465,11 @@ async function solveClockFromSun(){
 
   // report estimated bias when it is meaningful
   const biasMsg = (chosen.bias!=null && Math.abs(chosen.bias) > 0.5)
-    ? `<br><span style="opacity:.85">Estimated systematic bias: ${fmt(chosen.bias,1)}° (median of residuals). ${chosen.bias < -0.5 ? 'Negative bias is consistent with smoke or haze diffusing the sun disc, shifting the measured peak below the geometric centre.' : 'Positive bias may indicate a bright artifact above the sun disc.'}</span>`
+    ? `<br><span style="opacity:.85">Estimated systematic bias: ${fmt(chosen.bias,1)}° (median of residuals). ${chosen.bias < -0.5 ? 'Negative bias is consistent with atmospheric scattering — haze, smoke or thin cloud — diffusing the sun disc and shifting the measured peak below its geometric centre.' : 'Positive bias may indicate a bright artifact above the sun disc.'}</span>`
     : '';
 
   const rejMsg = rejected.length
-    ? `<br><strong style="color:#b3541e">${rejected.length} of ${obs.length} detection(s) rejected as outlier(s)</strong> — their measured elevation was grossly inconsistent with the other frames. These are likely lens flare, a bright cloud, or a smoke artifact rather than the sun. The offset is solved from the remaining ${cleanObs.length} frame(s).`
+    ? `<br><strong style="color:#b3541e">${rejected.length} of ${obs.length} detection(s) rejected as outlier(s)</strong> — their measured elevation was grossly inconsistent with the other frames. These are likely lens flare, a bright cloud, or an atmospheric artifact rather than the sun. The offset is solved from the remaining ${cleanObs.length} frame(s).`
     : '';
 
   const secondBest=rival;
@@ -1362,7 +1485,7 @@ async function solveClockFromSun(){
     <strong>Clock solved from the sun: ${_hm(chosen.off)}.</strong>
     Measured against ${cleanObs.length} frame(s) in which the sun was found independently of the clock${rejected.length?` (${rejected.length} outlier(s) rejected)`:''}.
     Elevation residual ${fmt(chosen.elevRms,2)}°${chosen.azRms!=null?` · azimuth cross-check ${fmt(chosen.azRms,1)}° against ${chosen.nAz} prior heading(s)`:''}.
-    ${chosen.elevRms>1.5?`<br><strong style="color:#b3541e">The elevation residual is still large after cleaning — treat this answer with caution.</strong> Residual bias (all frames off in the same direction) can come from smoke diffusing the sun disc, which shifts the measured peak slightly below the geometric centre.`:''}
+    ${chosen.elevRms>1.5?`<br><strong style="color:#b3541e">The elevation residual is still large after cleaning — treat this answer with caution.</strong> Residual bias (all frames off in the same direction) can come from atmospheric scattering diffusing the sun disc, which shifts the measured peak slightly below the geometric centre.`:''}
     ${hasAz&&chosen.azRms>10?`<br><span style="opacity:.85">The prior heading disagrees by ${fmt(chosen.azRms,0)}°. That is a heading error, not a clock error — the clock fit above does not depend on it.</span>`:''}
     ${rejMsg}
     ${biasMsg}
@@ -2099,7 +2222,7 @@ function scatCirclePoints(sunAz,sunEl,theta,n){
    Reproject the sphere so the SUN sits at the centre of the disk. Radius is then
    the scattering angle itself and the annuli become concentric circles, which is
    the coordinate system the analysis actually works in. Everything the metrics do
-   is radial in this view, so a forward-scattering lobe or a smoke halo reads as
+   is radial in this view, so a forward-scattering lobe or a scattering halo reads as
    structure around the centre rather than as a smear across a rectangle.
    Θ = radius/R × Θmax, φ = angle around the sun; the direction is rebuilt on the
    orthonormal basis (S, U, V) with S pointing at the sun.                        */
@@ -2593,10 +2716,15 @@ function renderMatching(){
 function shortName(n){ const p=n.split('/'); return p[p.length-1]||n; }
 
 /* ═══════════════ EXPORT ═══════════════ */
-function downloadBlob(blob, name){
-  const a=document.createElement('a'), u=URL.createObjectURL(blob);
-  a.href=u; a.download=name; document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); }, 1200);
+function downloadBlob(blob, name) {
+  /* Routed to the project when one is open and writable. Falls back
+     to a plain download otherwise and on any failure, so the worst
+     case is exactly the behaviour before projects existed. */
+  if (typeof vomSendOutput === 'function') return vomSendOutput(blob, name);
+  var _u = URL.createObjectURL(blob), _a = document.createElement("a");
+  _a.href = _u; _a.download = name;
+  document.body.appendChild(_a); _a.click(); _a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(_u); }, 4000);
 }
 function todayStamp(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function csvCell(v){
@@ -2875,6 +3003,845 @@ buildTzOptions();
 $('detWidthHint').textContent=(360/1440).toFixed(3)+'° per pixel';
 renderFilmstrip();
 window.addEventListener('error', e=>{ setStatus('Something went wrong: '+e.message,'error'); });
+</script>
+
+<div id="vomHelpBack"><div class="box">
+  <div class="hh">How SunSync 360 works<button type="button" onclick="vomHelpClose()" title="Close" aria-label="Close">&times;</button></div>
+  <div class="hb">
+<p>An equirectangular 360° frame has a horizontal axis that <em>looks</em> like a compass but usually isn't one: almost no consumer 360 camera writes its heading into the file. SunSync 360 recovers that heading by finding the sun in the frame and comparing it with where the sun astronomically <em>had</em> to be, given the GPS position and timestamp already in the EXIF.</p>
+    <p><strong>The check that makes it trustworthy:</strong> solar <em>elevation</em> does not depend on heading at all. So the gap between the sun's measured elevation in the frame and its computed elevation is a free, independent confidence score for every frame. Small residual → the detection found the sun. Large residual → it found a bright cloud, and the frame is gated out rather than silently mis-registered.</p>
+    <p><strong>Second opinion:</strong> where the sun can't be trusted or isn't visible, the tool cross-correlates the static terrain band below the horizon between frames. That gives a <em>relative</em> heading, which one sun-anchored frame converts to absolute.</p>
+    <ol style="margin:.5rem 0 0;padding-left:1.1rem">
+      <li><strong>Load</strong> — drop in a folder of 360° images. EXIF, GPS and projection are read automatically; anything missing can be typed in.</li>
+      <li><strong>Geometry</strong> — check the timezone and clock, review computed sun positions and air mass.</li>
+      <li><strong>Register</strong> — run detection, inspect the yaw-versus-time trace, accept a consensus or keep per-frame headings.</li>
+      <li><strong>Viewer</strong> — see the sun markers, true-north ticks and scattering-angle contours drawn on the imagery.</li>
+      <li><strong>Analyse</strong> — scattering-angle annuli, phase curves, and solar-window matching across datasets.</li>
+      <li><strong>Export</strong> — a geometry sidecar CSV for the Batch Image Analyzer, and optionally rotated images.</li>
+    </ol>
+    <p style="margin-bottom:0"><strong>Nothing leaves your machine.</strong> Files are read in the browser; no upload, no server.</p>
+  </div>
+</div></div>
+
+<script>
+/*__VOM_HELPJS_START__ — generated from shared/vom_shared.py, do not edit here */
+/* Escape closes, a backdrop click closes, the X closes. Bound at the window so
+   it works before focus has landed anywhere — the Manager had a bug where the
+   modal's own keydown handler only fired once focus moved inside, and Escape
+   pressed a moment too early went to <body> and did nothing. */
+function vomHelpOpen(){var b=document.getElementById('vomHelpBack');if(!b)return;
+  b.classList.add('show');var c=b.querySelector('.hh button');if(c)c.focus();}
+function vomHelpClose(){var b=document.getElementById('vomHelpBack');if(b)b.classList.remove('show');}
+window.addEventListener('keydown',function(e){
+  var b=document.getElementById('vomHelpBack');
+  if(b&&b.classList.contains('show')&&e.key==='Escape'){e.preventDefault();e.stopPropagation();vomHelpClose();}
+},true);
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.id==='vomHelpBack')vomHelpClose();
+});
+/*__VOM_HELPJS_END__*/
+</script>
+
+<script>
+/*__VOM_DROPJS_START__ — generated from shared/vom_shared.py, do not edit here */
+/* A dropped FOLDER arrives as a directory entry, not as its files. */
+async function vomFilesFromDrop(dt){
+  if(!dt) return [];
+  var items=Array.prototype.slice.call(dt.items||[]);
+  var canWalk=items.length&&typeof items[0].webkitGetAsEntry==='function';
+  if(!canWalk) return Array.prototype.slice.call(dt.files||[]);
+  /* Every entry must come off the item list NOW, synchronously. The list is
+     neutered the moment this function yields, so pulling entries after the
+     first await returns null for all of them. */
+  var entries=items.map(function(i){try{return i.webkitGetAsEntry();}catch(e){return null;}})
+                   .filter(Boolean);
+  if(!entries.length) return Array.prototype.slice.call(dt.files||[]);
+  var out=[],seen={};
+  async function walk(entry,prefix,depth){
+    if(!entry||depth>12) return;              /* a symlink loop would hang the tab */
+    if(entry.isFile){
+      /* entry.file() invokes neither callback once the entry has expired, so
+         the promise is raced against a timeout rather than left to hang. */
+      var file=await Promise.race([
+        new Promise(function(res){try{entry.file(res,function(){res(null);});}catch(e){res(null);}}),
+        new Promise(function(res){setTimeout(function(){res(null);},8000);})]);
+      if(file){
+        try{Object.defineProperty(file,'webkitRelativePath',{value:prefix+file.name});}catch(e){}
+        out.push(file);
+      }
+      return;
+    }
+    if(entry.isDirectory){
+      var key=prefix+entry.name+'/';
+      if(seen[key]) return;
+      seen[key]=1;
+      var reader=entry.createReader(),batch;
+      do{
+        /* Chrome returns at most 100 entries per call and signals the end with []. */
+        batch=await Promise.race([
+          new Promise(function(res){try{reader.readEntries(res,function(){res([]);});}catch(e){res([]);}}),
+          new Promise(function(res){setTimeout(function(){res([]);},8000);})]);
+        for(var i=0;i<batch.length;i++) await walk(batch[i],key,depth+1);
+      }while(batch.length);
+    }
+  }
+  for(var j=0;j<entries.length;j++) await walk(entries[j],'',0);
+  return out;
+}
+
+/* Some environments deliver drag events but never the files: a sandboxed
+   preview iframe is the common one, a file:// URL the other. Both look like
+   "drag and drop is broken" and neither is fixable from inside the page. */
+function vomDropEnvironment(){
+  var notes=[],framed=false;
+  try{framed=window.self!==window.top;}catch(e){framed=true;}
+  if(framed) notes.push('This page is running inside a frame or preview pane. Browsers do not hand dropped files to a sandboxed frame — open it in its own browser tab and drag and drop will work.');
+  if(location.protocol==='file:') notes.push('This page was opened as a file:// URL. File drops are unreliable there — serve it over http(s), or open the hosted copy.');
+  return notes;
+}
+
+/* opts: {onFiles, label, sub, accept, onError}
+   Listens in the CAPTURE phase on window AND document so nothing downstream
+   can swallow the event first, and stops propagation so a tool's own
+   drop-zone listener does not also fire and import everything twice. */
+function vomWireDrop(opts){
+  opts=opts||{};
+  var ov=document.getElementById('vomDropOverlay');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='vomDropOverlay';
+    ov.innerHTML='<div class="card"><div class="t"></div><div class="s"></div></div>';
+    document.body.appendChild(ov);
+  }
+  var depth=0;
+  function isFileDrag(e){
+    try{var t=e.dataTransfer&&e.dataTransfer.types;
+        return !!t&&Array.prototype.indexOf.call(t,'Files')>=0;}catch(err){return false;}
+  }
+  function show(){
+    var l=typeof opts.label==='function'?opts.label():(opts.label||'Drop images here');
+    ov.querySelector('.t').textContent=l;
+    ov.querySelector('.s').textContent=opts.sub||'Files or whole folders. Nothing is uploaded.';
+    ov.classList.add('show');
+  }
+  function hide(){depth=0;ov.classList.remove('show');}
+  function onEnter(e){if(!isFileDrag(e))return;e.preventDefault();depth++;show();}
+  function onOver(e){
+    if(!isFileDrag(e))return;
+    e.preventDefault();                       /* or the browser navigates to the file */
+    try{e.dataTransfer.dropEffect='copy';}catch(err){}
+    if(!ov.classList.contains('show')) show();   /* recover if dragenter was missed */
+  }
+  function onLeave(e){if(!isFileDrag(e))return;depth=Math.max(0,depth-1);if(!depth)hide();}
+  function onDrop(e){
+    if(!isFileDrag(e))return;
+    e.preventDefault();e.stopPropagation();
+    hide();
+    /* Both grabbed before yielding: the item list dies at the end of this task,
+       but the FileList survives, so an empty entry walk can still recover. */
+    var dt=e.dataTransfer;
+    var fallback=Array.prototype.slice.call((dt&&dt.files)||[]);
+    Promise.resolve(vomFilesFromDrop(dt)).catch(function(){return [];}).then(function(files){
+      if(!files.length&&fallback.length) files=fallback;
+      if(opts.accept) files=files.filter(opts.accept);
+      if(!files.length){
+        var msg='Nothing usable arrived from that drop.';
+        var env=vomDropEnvironment();
+        if(env.length) msg+=' '+env[0];
+        if(opts.onError) opts.onError(msg); else console.warn('[vom] '+msg);
+        return;
+      }
+      opts.onFiles(files);
+    });
+  }
+  [window,document].forEach(function(t){
+    t.addEventListener('dragenter',onEnter,true);
+    t.addEventListener('dragover',onOver,true);
+    t.addEventListener('dragleave',onLeave,true);
+    t.addEventListener('drop',onDrop,true);
+  });
+  /* Anything reaching the document unhandled would navigate away and lose the
+     session, which on a tool holding unsaved work is unforgivable. */
+  window.addEventListener('dragover',function(e){e.preventDefault();});
+  window.addEventListener('drop',function(e){e.preventDefault();});
+}
+/*__VOM_DROPJS_END__*/
+/*__VOM_DROPWIRE_START__*/
+window.addEventListener("DOMContentLoaded", function(){
+vomWireDrop({
+  label: 'Drop 360° images into SunSync',
+  accept: function(f){ return /\.(jpe?g|png|gif|bmp|webp|tiff?)$/i.test(f.name); },
+  onFiles: function(files){ addFiles(files); }
+});
+});
+/*__VOM_DROPWIRE_END__*/
+</script>
+
+<script>
+/*__VOM_PROJECTJS_START__ — generated from shared/vom_shared.py, do not edit here */
+var VOM_DB_NAME='vom-suite', VOM_DB_VERSION=2;
+var _vomDb=null;
+
+function vomDb(){
+  if(_vomDb) return Promise.resolve(_vomDb);
+  return new Promise(function(res,rej){
+    var rq=indexedDB.open(VOM_DB_NAME,VOM_DB_VERSION);
+    rq.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('projects')) db.createObjectStore('projects',{keyPath:'id'});
+      /* Handles live apart from the records on purpose: a FileSystemDirectoryHandle
+         is structured-cloneable but not JSON-serialisable, so keeping it out of
+         the project record means the record can still be exported as text. */
+      if(!db.objectStoreNames.contains('handles'))  db.createObjectStore('handles');
+      if(!db.objectStoreNames.contains('suiteMeta')) db.createObjectStore('suiteMeta');
+      /* Outputs and runs, for BROWSER projects. Folder projects put the same
+         things on disk. Indexed by project so a listing does not walk
+         everything ever produced. */
+      if(!db.objectStoreNames.contains('outputs')){
+        var o=db.createObjectStore('outputs',{keyPath:'id'});
+        o.createIndex('projectId','projectId',{unique:false});
+      }
+      if(!db.objectStoreNames.contains('runs')){
+        var r=db.createObjectStore('runs',{keyPath:'id'});
+        r.createIndex('projectId','projectId',{unique:false});
+      }
+    };
+    rq.onsuccess=function(){_vomDb=rq.result;res(_vomDb);};
+    rq.onerror=function(){rej(rq.error);};
+  });
+}
+function _vomTx(store,mode,fn){
+  return vomDb().then(function(db){
+    return new Promise(function(res,rej){
+      var tx=db.transaction(store,mode),s=tx.objectStore(store),out;
+      out=fn(s);
+      /* `out instanceof IDBRequest`, not `out.result !== undefined`. A get()
+         that finds nothing has result === undefined, which is a real answer —
+         the old test fell through and handed back the request object itself,
+         so "no current project" came out as {} and every truthiness check
+         downstream was wrong. */
+      tx.oncomplete=function(){res(out instanceof IDBRequest?out.result:out);};
+      tx.onerror=function(){rej(tx.error);};
+    });
+  });
+}
+function vomProjects(){return _vomTx('projects','readonly',function(s){return s.getAll();});}
+function vomProjectGet(id){return _vomTx('projects','readonly',function(s){return s.get(id);});}
+function vomProjectPut(p){return _vomTx('projects','readwrite',function(s){return s.put(p);});}
+function vomProjectDel(id){
+  return _vomTx('projects','readwrite',function(s){return s.delete(id);}).then(function(){
+    return _vomTx('handles','readwrite',function(s){return s.delete(id);});
+  });
+}
+function vomHandleGet(id){return _vomTx('handles','readonly',function(s){return s.get(id);});}
+function vomHandlePut(id,h){return _vomTx('handles','readwrite',function(s){return s.put(h,id);});}
+
+function vomUid(){
+  return 'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+}
+
+/* Folder projects need showDirectoryPicker, which is desktop Chromium only —
+   Firefox and Safari have no picker at all, and Chrome on Android skips the
+   picker methods too. The option is shown but disabled elsewhere, with the
+   reason: someone on Safari should be able to see that the feature exists and
+   that switching browser is the fix, rather than concluding it is broken. */
+function vomCanUseFolders(){return typeof window.showDirectoryPicker==='function';}
+
+async function vomCreateProject(name,store){
+  var p={id:vomUid(),name:(name||'Untitled project').trim(),store:store,
+         created:Date.now(),updated:Date.now(),datasets:0,runs:0,folderName:null};
+  if(store==='folder'){
+    if(!vomCanUseFolders()) throw new Error('This browser cannot open a folder.');
+    var dir=await window.showDirectoryPicker({mode:'readwrite'});
+    p.folderName=dir.name;
+    await vomHandlePut(p.id,dir);
+    /* The manifest is what makes the folder a project rather than a folder
+       that happens to contain images. Written first, so a folder that fails
+       to accept it fails now rather than at the first save. */
+    var fh=await dir.getFileHandle('vom-project.json',{create:true});
+    var w=await fh.createWritable();
+    await w.write(JSON.stringify({format:'vom-project',version:1,id:p.id,name:p.name,
+                                  created:new Date(p.created).toISOString()},null,2));
+    await w.close();
+  }
+  await vomProjectPut(p);
+  return p;
+}
+
+/* A stored handle looks perfectly valid after a reload and then the first write
+   throws NotAllowedError unless permission is re-requested from a real user
+   gesture. So this is called FROM a click, never on load — otherwise the
+   failure surfaces at save time, which is the worst possible moment. */
+async function vomEnsureAccess(p){
+  if(p.store!=='folder') return {ok:true};
+  var h=await vomHandleGet(p.id);
+  if(!h) return {ok:false,reason:'The folder for this project is not remembered any more. Re-open it to continue.'};
+  var q=await h.queryPermission({mode:'readwrite'});
+  if(q==='granted') return {ok:true,handle:h};
+  var r=await h.requestPermission({mode:'readwrite'});
+  if(r==='granted') return {ok:true,handle:h};
+  return {ok:false,reason:'Permission to use that folder was not granted.'};
+}
+
+/* ── Outputs and the run log ──────────────────────────────────────────────
+   Two things, deliberately separate. An OUTPUT is a file a tool produced. A RUN
+   is the record of producing it: which tool, which version, which dataset, what
+   settings. The files alone answer "what is in here"; the runs answer "what did
+   I do", and only the second is a methods section.
+
+   One file per run, never one runs.json. Two tabs will eventually write at the
+   same time — the Analyzer finishing a batch while the Cutter saves a mask —
+   and a single shared file means one of them silently wins. Per-run files are
+   append-only and cannot collide. */
+function _vomIdx(store,projectId){
+  return vomDb().then(function(db){
+    return new Promise(function(res,rej){
+      var tx=db.transaction(store,'readonly');
+      var rq=tx.objectStore(store).index('projectId').getAll(projectId);
+      rq.onsuccess=function(){res(rq.result||[]);};
+      rq.onerror=function(){rej(rq.error);};
+    });
+  });
+}
+async function _vomDirFor(handle,names){
+  var d=handle;
+  for(var i=0;i<names.length;i++) d=await d.getDirectoryHandle(names[i],{create:true});
+  return d;
+}
+async function _vomUnique(dir,name){
+  var taken={};
+  for await (var e of dir.entries()) taken[e[0]]=1;
+  if(!taken[name]) return name;
+  var dot=name.lastIndexOf('.'), stem=dot>0?name.slice(0,dot):name, ext=dot>0?name.slice(dot):'';
+  for(var i=2;i<10000;i++){ var c=stem+'_'+i+ext; if(!taken[c]) return c; }
+  return stem+'_'+Date.now()+ext;
+}
+
+/* o = {tool, name, blob, runId}. Returns what the run log should record. */
+async function vomSaveOutput(p,handle,o){
+  if(!p) throw new Error('no project open');
+  if(p.store==='folder'){
+    if(!handle) throw new Error('the project folder is not connected');
+    var dir=await _vomDirFor(handle,['outputs',o.tool]);
+    var name=await _vomUnique(dir,o.name);
+    var fh=await dir.getFileHandle(name,{create:true});
+    var w=await fh.createWritable();
+    await w.write(o.blob);
+    await w.close();
+    return {name:name, path:'outputs/'+o.tool+'/'+name, size:o.blob.size, where:'folder'};
+  }
+  var rec={id:'o_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),
+           projectId:p.id, tool:o.tool, runId:o.runId||null, name:o.name,
+           type:o.blob.type||'', size:o.blob.size, blob:o.blob, created:Date.now()};
+  await _vomTx('outputs','readwrite',function(s){return s.put(rec);});
+  return {name:o.name, id:rec.id, size:rec.size, where:'browser'};
+}
+
+async function vomLogRun(p,handle,run){
+  if(!p) throw new Error('no project open');
+  var rec={
+    id:run.id||('r_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+    projectId:p.id, tool:run.tool, version:run.version||'',
+    datasetId:run.datasetId||null, datasetName:run.datasetName||'',
+    params:run.params||{}, outputs:run.outputs||[], note:run.note||'',
+    created:run.created||Date.now(),
+  };
+  if(p.store==='folder'){
+    if(!handle) throw new Error('the project folder is not connected');
+    var dir=await _vomDirFor(handle,['runs']);
+    var fh=await dir.getFileHandle(rec.id+'.json',{create:true});
+    var w=await fh.createWritable();
+    await w.write(JSON.stringify(Object.assign({format:'vom-run',version:1},rec),null,2));
+    await w.close();
+  } else {
+    await _vomTx('runs','readwrite',function(s){return s.put(rec);});
+  }
+  p.runs=(p.runs||0)+1; p.updated=Date.now();
+  await vomProjectPut(p);
+  return rec;
+}
+
+/* Newest first, whichever store it came from. */
+async function vomRuns(p,handle){
+  if(!p) return [];
+  if(p.store!=='folder') {
+    var rs=await _vomIdx('runs',p.id);
+    return rs.sort(function(a,b){return b.created-a.created;});
+  }
+  if(!handle) return [];
+  var out=[];
+  try{
+    var dir=await handle.getDirectoryHandle('runs',{create:true});
+    for await (var e of dir.entries()){
+      if(e[1].kind!=='file'||!/\.json$/.test(e[0])) continue;
+      try{ out.push(JSON.parse(await (await e[1].getFile()).text())); }catch(err){}
+    }
+  }catch(err){}
+  return out.sort(function(a,b){return (b.created||0)-(a.created||0);});
+}
+
+/* The plain listing: what files are actually in here, grouped by tool. */
+async function vomOutputs(p,handle){
+  if(!p) return [];
+  if(p.store!=='folder'){
+    var os=await _vomIdx('outputs',p.id);
+    return os.map(function(o){return {tool:o.tool,name:o.name,size:o.size,created:o.created,id:o.id};})
+             .sort(function(a,b){return b.created-a.created;});
+  }
+  if(!handle) return [];
+  var list=[];
+  try{
+    var root=await handle.getDirectoryHandle('outputs',{create:true});
+    for await (var t of root.entries()){
+      if(t[1].kind!=='directory') continue;
+      for await (var f of t[1].entries()){
+        if(f[1].kind!=='file') continue;
+        var file=await f[1].getFile();
+        list.push({tool:t[0],name:f[0],size:file.size,created:file.lastModified,
+                   path:'outputs/'+t[0]+'/'+f[0]});
+      }
+    }
+  }catch(err){}
+  return list.sort(function(a,b){return (b.created||0)-(a.created||0);});
+}
+
+/* Which project the tools should open. One key, shared by every page. */
+function vomCurrentId(){return _vomTx('suiteMeta','readonly',function(s){return s.get('currentProject');});}
+function vomSetCurrent(id){return _vomTx('suiteMeta','readwrite',function(s){return s.put(id,'currentProject');});}
+
+/* ── Reading a dataset back OUT of a project ──────────────────────────────
+   The half that closes the loop. Until now a tool could write into a project
+   but you still had to find the files again yourself, which is exactly the
+   step a project was supposed to remove.
+
+   A browser project's images live in the MANAGER's own database, not this one.
+   Same origin, so any page here can read it — but it must never CREATE it.
+   indexedDB.open with no version happily makes an EMPTY database at version 1;
+   the Manager would then open that same version, get no upgradeneeded event,
+   and find none of its stores. A tool that merely looked would have broken the
+   Manager's whole library. So: check whether it exists, and if an empty one got
+   made anyway, delete it again. */
+var VOM_MGR_DB='vom-viewer', _vomMgrDb=null;
+var VOM_IMG_RE=/\.(jpe?g|png|gif|bmp|webp|tiff?)$/i;
+
+function _vomNat(a,b){
+  return String(a==null?'':a).localeCompare(String(b==null?'':b),undefined,{numeric:true,sensitivity:'base'});
+}
+
+async function vomManagerDb(){
+  if(_vomMgrDb) return _vomMgrDb;
+  if(indexedDB.databases){
+    try{
+      var list=await indexedDB.databases();
+      /* An empty list means the API answered "none", which is a real answer.
+         A throw means it did not answer at all — fall through and let the
+         empty-store guard below do the work. */
+      if(list && !list.some(function(d){return d.name===VOM_MGR_DB;})) return null;
+    }catch(e){}
+  }
+  var db;
+  try{
+    db=await new Promise(function(res,rej){
+      var rq=indexedDB.open(VOM_MGR_DB);
+      rq.onsuccess=function(){res(rq.result);};
+      rq.onerror=function(){rej(rq.error);};
+      rq.onblocked=function(){rej(new Error('blocked'));};
+    });
+  }catch(e){ return null; }
+  if(!db.objectStoreNames.contains('datasets')||!db.objectStoreNames.contains('images')){
+    try{db.close();}catch(e){}
+    try{indexedDB.deleteDatabase(VOM_MGR_DB);}catch(e){}
+    return null;
+  }
+  /* The Manager may upgrade its schema while this tab holds the database open,
+     which would block that upgrade indefinitely — the Manager would appear to
+     hang on load with no explanation and the culprit in another tab. Let go. */
+  db.onversionchange=function(){ try{db.close();}catch(e){} _vomMgrDb=null; };
+  _vomMgrDb=db;
+  return db;
+}
+function _vomMgrReq(db,store,fn){
+  return new Promise(function(res,rej){
+    var tx=db.transaction(store,'readonly'),rq=fn(tx.objectStore(store));
+    rq.onsuccess=function(){res(rq.result);};
+    rq.onerror=function(){rej(rq.error);};
+  });
+}
+
+/* Every dataset in this project, whichever store it lives in. `count` is what
+   is actually there right now, not what a record last claimed. */
+async function vomDatasets(p,handle){
+  if(!p) return [];
+  if(p.store==='folder'){
+    if(!handle) return [];
+    var root;
+    try{ root=await handle.getDirectoryHandle('datasets',{create:false}); }catch(e){ return []; }
+    var out=[];
+    for await (var e of root.entries()){
+      if(e[1].kind!=='directory') continue;
+      var doc=null;
+      try{
+        var dh=await e[1].getFileHandle('dataset.json');
+        doc=JSON.parse(await (await dh.getFile()).text());
+      }catch(err){ continue; }        /* a bare folder of images is not a dataset */
+      if(!doc||doc.format!=='vom-dataset') continue;
+      var ex={}; (doc.excluded||[]).forEach(function(n){ex[n]=1;});
+      var count=0, edited=0;
+      for await (var f of e[1].entries())
+        if(f[1].kind==='file'&&VOM_IMG_RE.test(f[0])&&!ex[f[0]]) count++;
+      (doc.images||[]).forEach(function(i){ if(i.edits&&!ex[i.file]) edited++; });
+      out.push({id:doc.id,name:doc.name||e[0],slug:e[0],count:count,edited:edited,
+                note:doc.note||'',updated:doc.updated||doc.created||0,where:'folder'});
+    }
+    return out.sort(function(a,b){return _vomNat(a.name,b.name);});
+  }
+  var db=await vomManagerDb();
+  if(!db) return [];
+  var dss=await _vomMgrReq(db,'datasets',function(s){return s.getAll();});
+  var mine=(dss||[]).filter(function(d){return (d.projectIds||[]).indexOf(p.id)>=0;}), out2=[];
+  for(var i=0;i<mine.length;i++){
+    var recs=await _vomMgrReq(db,'images',function(s){return s.index('dsId').getAll(mine[i].id);});
+    out2.push({id:mine[i].id,name:mine[i].name,count:(recs||[]).length,
+               edited:(recs||[]).filter(function(r){return r.edits;}).length,
+               note:mine[i].note||'',updated:mine[i].updated||mine[i].created||0,where:'browser'});
+  }
+  return out2.sort(function(a,b){return _vomNat(a.name,b.name);});
+}
+
+/* The dataset's images as ordinary File objects, ready to hand to whatever the
+   tool already does with a drop.
+
+   These are the ORIGINALS. Edits made in the Manager are stored as recipes
+   rather than baked pixels, deliberately: a crop applied on the way out would
+   silently change what a downstream measurement means, and re-encoding a JPEG
+   to hand it over would alter the very colours the Analyzer is there to
+   measure. The picker says so rather than leaving it to be discovered. */
+async function vomOpenDataset(p,handle,dsId,onProgress){
+  if(!p) return [];
+  if(p.store==='folder'){
+    if(!handle) throw new Error('the project folder is not connected');
+    var root=await handle.getDirectoryHandle('datasets',{create:false});
+    var dir=null,doc=null;
+    for await (var e of root.entries()){
+      if(e[1].kind!=='directory') continue;
+      try{
+        var d=JSON.parse(await (await (await e[1].getFileHandle('dataset.json')).getFile()).text());
+      }catch(err){ continue; }
+      if(d&&d.id===dsId){ dir=e[1]; doc=d; break; }
+    }
+    if(!dir) throw new Error('that dataset is no longer in the project folder');
+    var ex={}; (doc.excluded||[]).forEach(function(n){ex[n]=1;});
+    var hs={},names=[];
+    for await (var f of dir.entries())
+      if(f[1].kind==='file'&&VOM_IMG_RE.test(f[0])&&!ex[f[0]]) hs[f[0]]=f[1];
+    /* The manifest's order first. That is the order the Manager showed them in,
+       and a tool that quietly reshuffled a curated sequence would be wrong in a
+       way nobody would think to check. Anything on disk the manifest has not
+       heard of follows, naturally sorted. */
+    (doc.images||[]).forEach(function(i){ if(hs[i.file]&&names.indexOf(i.file)<0) names.push(i.file); });
+    Object.keys(hs).sort(_vomNat).forEach(function(n){ if(names.indexOf(n)<0) names.push(n); });
+    var files=[];
+    for(var i=0;i<names.length;i++){
+      try{ files.push(await hs[names[i]].getFile()); }catch(err){}
+      if(onProgress) onProgress(i+1,names.length);
+    }
+    return files;
+  }
+  var db=await vomManagerDb();
+  if(!db) return [];
+  var recs=await _vomMgrReq(db,'images',function(s){return s.index('dsId').getAll(dsId);});
+  (recs||[]).sort(function(a,b){return _vomNat(a.name,b.name);});
+  var out=[];
+  for(var j=0;j<recs.length;j++){
+    var r=recs[j],b=null;
+    try{ b=await _vomMgrReq(db,'blobs',function(s){return s.get(r.id);}); }catch(err){}
+    if(!b||!b.blob) continue;         /* a folder-held record inside a browser project */
+    out.push(new File([b.blob],r.origName||r.name,
+      {type:r.type||b.blob.type||'image/jpeg',lastModified:r.dateMs||r.added||Date.now()}));
+    if(onProgress) onProgress(j+1,recs.length);
+  }
+  return out;
+}
+
+/* One output back as a File — the Visualizer's way in, since what it consumes
+   is a CSV another tool produced rather than a folder of images. */
+async function vomOpenOutput(p,handle,o){
+  if(!p||!o) return null;
+  if(p.store==='folder'){
+    if(!handle) throw new Error('the project folder is not connected');
+    var root=await handle.getDirectoryHandle('outputs',{create:false});
+    var td=await root.getDirectoryHandle(o.tool);
+    return await (await td.getFileHandle(o.name)).getFile();
+  }
+  var rec=await _vomTx('outputs','readonly',function(s){return s.get(o.id);});
+  if(!rec||!rec.blob) return null;
+  return new File([rec.blob],rec.name,{type:rec.type||'text/csv',lastModified:rec.created||Date.now()});
+}
+/*__VOM_PROJECTJS_END__*/
+</script>
+
+<script>
+/*__VOM_PROJBARJS_START__ — generated from shared/vom_shared.py, do not edit here */
+/* State a tool needs to know about the open project, and one call to send it
+   an output. Every tool keeps its own download button untouched: a project
+   that silently took over where files went would be worse than one that never
+   offered. */
+var vomProject = null, vomHandle = null, vomAccess = 'unknown';
+/* The tool DECLARES what it is; the URL is only a fallback. Deriving it from
+   location.pathname looked fine until the pages were served as
+   /image-cutter.html rather than /image-cutter/ — every run in the log was then
+   attributed to a tool called "tool", which is exactly the kind of quiet wrong
+   answer a provenance record must never give. */
+var vomToolSlug = 'tool';
+var vomToolVersion = '';
+
+function vomProjectWritable(){
+  return !!(vomProject && (vomProject.store !== 'folder' || vomAccess === 'ok'));
+}
+
+async function vomConnect(){
+  if(!vomProject || vomProject.store !== 'folder') return true;
+  var r;
+  try{ r = await vomEnsureAccess(vomProject); }
+  catch(e){ r = {ok:false, reason:e.message||String(e)}; }
+  if(r.ok){ vomHandle = r.handle; vomAccess = 'ok'; }
+  else { vomHandle = null; vomAccess = 'denied'; alert(r.reason || 'Could not reach that folder.'); }
+  vomRenderProjBar();
+  return !!r.ok;
+}
+
+/* blob + filename in, a description of what happened out. Falls back to a
+   download rather than losing the file — losing an export because a folder
+   went away would be the worst possible trade. */
+async function vomSendOutput(blob, filename, params){
+  if(!vomProjectWritable()){
+    vomDownload(blob, filename);
+    return 'downloaded';
+  }
+  try{
+    var saved = await vomSaveOutput(vomProject, vomHandle, {tool:vomToolSlug, name:filename, blob:blob});
+    await vomLogRun(vomProject, vomHandle, {
+      tool: vomToolSlug, version: vomToolVersion,
+      /* If these files came out of the project, say which dataset. A run record
+         naming an output and no input is half a methods section. */
+      datasetId: vomOpenedDataset ? vomOpenedDataset.id : null,
+      datasetName: vomOpenedDataset ? vomOpenedDataset.name : '',
+      params: params || {}, outputs: [saved.name],
+    });
+    vomToast('Saved into ' + vomProject.name);
+    return 'saved into the project';
+  }catch(e){
+    vomDownload(blob, filename);
+    vomToast('Could not save into the project — downloaded instead.');
+    return 'downloaded instead';
+  }
+}
+function vomDownload(blob, filename){
+  var u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(u); }, 4000);
+}
+function vomToast(msg){
+  var el = document.getElementById('vomProjBar');
+  if(!el) return;
+  var s = el.querySelector('.pb-dest');
+  if(s){ s.textContent = msg; setTimeout(function(){ vomRenderProjBar(); }, 5000); }
+}
+
+function vomRenderProjBar(){
+  var el = document.getElementById('vomProjBar');
+  if(!el) return;
+  var HUB = 'https://www.jonathancinnamon.com/vis-o-matic/#projects';
+  if(!vomProject){
+    el.className = 'empty';
+    el.innerHTML = '<span class="pb-none">No project open — outputs download as usual</span>' +
+      '<a class="pb-link" href="' + HUB + '">Start or open one &rsaquo;</a>';
+    return;
+  }
+  el.className = '';
+  var pill = vomProject.store === 'folder'
+    ? '<span class="pb-pill folder">folder</span>'
+    : '<span class="pb-pill browser">browser</span>';
+  var needs = vomProject.store === 'folder' && vomAccess !== 'ok';
+  el.innerHTML =
+    '<span class="pb-label">Project</span>' +
+    '<span class="pb-name">' + vomEsc(vomProject.name) + '</span>' + pill +
+    (vomProject.folderName ? '<span class="pb-sub">' + vomEsc(vomProject.folderName) + '</span>' : '') +
+    (needs
+      ? '<button type="button" onclick="vomConnect()">Connect folder</button>'
+      : '<span class="pb-dest">outputs are saved here</span>') +
+    (vomIntake && !needs
+      ? '<button type="button" class="pb-open" onclick="vomPickOpen()">' +
+        (vomIntakeKind === 'csv' ? 'Open a CSV from the project' : 'Open a dataset') + '</button>'
+      : '') +
+    '<a class="pb-link" href="' + HUB + '">Manage projects &rsaquo;</a>';
+}
+
+/* ── Opening something out of the project ─────────────────────────────────
+   The tool declares ONE intake — the same seam the folder-drop handler uses —
+   so opening from a project goes down the identical path as dropping the files
+   in by hand. Two paths into a tool is how one of them ends up subtly
+   different from the other. */
+var vomIntake = null, vomIntakeKind = 'images';
+
+function vomPickEl(){
+  var el = document.getElementById('vomPick');
+  if(el) return el;
+  el = document.createElement('div');
+  el.id = 'vomPick';
+  el.addEventListener('click', function(ev){ if(ev.target === el) vomPickClose(); });
+  /* Captured at the window, because several of these tools bind their own
+     Escape handler and a dialog you cannot dismiss is worse than no dialog. */
+  window.addEventListener('keydown', function(ev){
+    if(ev.key === 'Escape' && el.classList.contains('on')){ ev.stopPropagation(); vomPickClose(); }
+  }, true);
+  document.body.appendChild(el);
+  return el;
+}
+function vomPickClose(){ var el = document.getElementById('vomPick'); if(el) el.classList.remove('on'); }
+
+function _vomPickShow(title, note, rows, foot){
+  var el = vomPickEl();
+  el.innerHTML =
+    '<div class="pk" role="dialog" aria-modal="true" aria-label="' + vomEsc(title) + '">' +
+      '<div class="pk-head"><h3>' + vomEsc(title) + '</h3>' +
+        (note ? '<p>' + note + '</p>' : '') + '</div>' +
+      '<div class="pk-body">' + rows + '</div>' +
+      '<div class="pk-foot"><button type="button" onclick="vomPickClose()">Close</button>' +
+        (foot ? '<span class="pk-note">' + foot + '</span>' : '') + '</div>' +
+    '</div>';
+  el.classList.add('on');
+}
+
+async function vomPickOpen(){
+  if(!vomProject || !vomIntake) return;
+  if(vomProject.store === 'folder' && vomAccess !== 'ok'){
+    if(!await vomConnect()) return;
+  }
+  _vomPickShow(vomIntakeKind === 'csv' ? 'Open a CSV from the project' : 'Open a dataset',
+               'Reading ' + vomEsc(vomProject.name) + '…', '<div class="pk-empty">One moment…</div>', '');
+  try{
+    if(vomIntakeKind === 'csv') await _vomPickCsv();
+    else await _vomPickDatasets();
+  }catch(e){
+    _vomPickShow('Could not read the project', '',
+      '<div class="pk-empty">' + vomEsc(e.message || String(e)) + '</div>', '');
+  }
+}
+
+async function _vomPickDatasets(){
+  var list = await vomDatasets(vomProject, vomHandle);
+  var usable = list.filter(function(d){ return d.count > 0; });
+  if(!usable.length){
+    _vomPickShow('Open a dataset',
+      'Nothing to open yet.',
+      '<div class="pk-empty">This project has no datasets with images in it. Curate one in ' +
+      '<b>Image Manager</b> and add it to the project, then it will appear here.</div>',
+      '');
+    return;
+  }
+  var edited = usable.reduce(function(n, d){ return n + (d.edited || 0); }, 0);
+  var rows = usable.map(function(d, i){
+    return '<button type="button" class="pk-row" onclick="vomPickTake(' + i + ')">' +
+      '<b>' + vomEsc(d.name) + '</b>' +
+      '<span>' + d.count + ' image' + (d.count === 1 ? '' : 's') +
+      (d.edited ? ' · ' + d.edited + ' with edits recorded' : '') +
+      (d.note ? ' · ' + vomEsc(d.note.slice(0, 70)) : '') + '</span></button>';
+  }).join('');
+  window.__vomPickList = usable;
+  _vomPickShow('Open a dataset',
+    'From <b>' + vomEsc(vomProject.name) + '</b>. These are the original files — ' +
+    'edits made in Image Manager are kept as a recipe, not baked into the pixels, ' +
+    'so what arrives here is exactly what your camera wrote.',
+    rows,
+    edited ? edited + ' image(s) carry edits that are not applied here.' : '');
+}
+
+async function vomPickTake(i){
+  var d = (window.__vomPickList || [])[i];
+  if(!d) return;
+  _vomPickShow('Opening ' + d.name, '', '<div class="pk-empty">Reading ' + d.count + ' file(s)…</div>', '');
+  var files;
+  try{ files = await vomOpenDataset(vomProject, vomHandle, d.id); }
+  catch(e){
+    _vomPickShow('Could not open that dataset', '',
+      '<div class="pk-empty">' + vomEsc(e.message || String(e)) + '</div>', '');
+    return;
+  }
+  if(!files.length){
+    _vomPickShow('Nothing to open', '',
+      '<div class="pk-empty">No readable files were found for that dataset. If this is a folder ' +
+      'project, the images may have been moved or renamed outside the tool.</div>', '');
+    return;
+  }
+  vomPickClose();
+  /* The dataset comes with the files, so a run logged after this can say which
+     one it measured rather than leaving a provenance record that names a file
+     and nothing else. */
+  vomOpenedDataset = {id:d.id, name:d.name, count:files.length};
+  try{ vomIntake(files); }catch(e){ alert('This tool could not take those files: ' + (e.message||e)); }
+}
+var vomOpenedDataset = null;
+
+async function _vomPickCsv(){
+  var outs = (await vomOutputs(vomProject, vomHandle)).filter(function(o){
+    return /\.(csv|tsv|txt)$/i.test(o.name);
+  });
+  if(!outs.length){
+    _vomPickShow('Open a CSV from the project', 'Nothing to open yet.',
+      '<div class="pk-empty">No CSVs have been saved into this project. Run the ' +
+      '<b>Batch Image Analyzer</b> with this project open and its results will land here.</div>', '');
+    return;
+  }
+  window.__vomPickList = outs;
+  var rows = outs.map(function(o, i){
+    return '<button type="button" class="pk-row" onclick="vomPickTakeCsv(' + i + ')">' +
+      '<b>' + vomEsc(o.name) + '</b><span>' + vomEsc(o.tool) +
+      (o.size ? ' · ' + Math.max(1, Math.round(o.size / 1024)) + ' KB' : '') + '</span></button>';
+  }).join('');
+  _vomPickShow('Open a CSV from the project',
+    'Files saved into <b>' + vomEsc(vomProject.name) + '</b> by the other tools.', rows, '');
+}
+
+async function vomPickTakeCsv(i){
+  var o = (window.__vomPickList || [])[i];
+  if(!o) return;
+  var f;
+  try{ f = await vomOpenOutput(vomProject, vomHandle, o); }
+  catch(e){ f = null; }
+  if(!f){
+    _vomPickShow('Could not open that file', '',
+      '<div class="pk-empty">It may have been moved or removed since the project last listed it.</div>', '');
+    return;
+  }
+  vomPickClose();
+  try{ vomIntake([f]); }catch(e){ alert('This tool could not take that file: ' + (e.message||e)); }
+}
+function vomEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* opts = {kind:'images'|'csv', intake:function(files){}}. Optional: a tool that
+   passes none simply has no Open button, which is what the three-argument form
+   did before this existed. */
+async function vomInitProjBar(version, slug, opts){
+  vomToolVersion = version || '';
+  vomToolSlug = slug || (location.pathname.match(/\/([a-z0-9-]+)\/?$/) || [])[1] || 'tool';
+  if(opts && typeof opts.intake === 'function'){
+    vomIntake = opts.intake;
+    vomIntakeKind = opts.kind || 'images';
+  }
+  try{
+    var id = await vomCurrentId();
+    vomProject = id ? await vomProjectGet(id) : null;
+    if(vomProject && vomProject.store === 'browser') vomAccess = 'ok';
+  }catch(e){ vomProject = null; }
+  vomRenderProjBar();
+}
+/*__VOM_PROJBARJS_END__*/
+/*__VOM_PROJBARWIRE_START__*/
+window.addEventListener("DOMContentLoaded", function(){ vomInitProjBar((typeof APP_VERSION!=='undefined'?APP_VERSION:''), "sunsync-360", {kind:"images", intake:function(files){ addFiles(files); }}); });
+/*__VOM_PROJBARWIRE_END__*/
 </script>
 </body>
 </html>
